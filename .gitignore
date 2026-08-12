@@ -1,0 +1,9 @@
+node_modules/
+dist/
+coverage/
+.DS_Store
+*.log
+memory-bank/database/*.db
+memory-bank/database/*.sqlite
+memory-bank/database/*.sqlite3
+memory-bank/database/public/generated/
