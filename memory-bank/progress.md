@@ -1,8 +1,8 @@
 # Progress
-*Last Updated: 2026-08-13 04:45:00 IST*
+*Last Updated: 2026-08-13 04:55:00 IST*
 
 ## Overall Status
-Foundation and validation phase: 70% complete.
+Foundation and validation phase: 85% complete.
 
 ## Completed
 - Created the project directory.
@@ -21,15 +21,17 @@ Foundation and validation phase: 70% complete.
 - Implemented SessionKeyService with non-extractable master key caching, auto-timeout, and lifecycle tests.
 - Wired Vault tab unlock/lock to SessionKeyService.
 - Added editor encrypt/decrypt selection commands with reveal modal.
+- Implemented ciphertext-only export/import service with bundle format and validation.
+- Implemented non-sensitive security history service with event logging.
+- Wired Blocks tab to scan and list encrypted blocks in current note.
+- Wired History tab to display non-sensitive operation log.
+- All 49 tests passing (crypto, format, session-key, settings, updater, export-import, security-history).
 
 ## In Progress
-- T1: safe inline-encryption design and validation — export/import and history remaining.
+- T1: safe inline-encryption design and validation — security review remaining.
 - T2: cross-platform plugin auto-update tool — Android verification pending.
-- T3: Obsidian sidebar UI and settings-surface — Vault tab wired, Blocks/History pending.
+- T3: Obsidian sidebar UI and settings-surface — fully wired.
 
 ## Not Started
-- Obsidian editor integration (encrypt selection, decrypt reveal modal).
-- Session-key wiring to Vault tab UI.
-- Ciphertext-only export/import, non-sensitive history, real encryption Settings controls.
 - Desktop and Android acceptance testing.
 - Security review and release packaging.
