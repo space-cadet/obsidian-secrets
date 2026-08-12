@@ -8,13 +8,6 @@ declare module "obsidian" {
     rmdir(path: string, recursive?: boolean): Promise<void>;
   }
 
-  export interface App {
-    vault: { adapter: VaultAdapter };
-    workspace: Workspace;
-    setting: SettingManager;
-    commands: CommandManager;
-  }
-
   export interface CommandManager {
     executeCommandById(id: string): void | Promise<void>;
   }
@@ -24,14 +17,43 @@ declare module "obsidian" {
     openTabById(id: string): void;
   }
 
+  export interface Editor {
+    getSelection(): string;
+    replaceSelection(text: string): void;
+    getValue(): string;
+    setValue(text: string): void;
+  }
+
+  export class View {
+    constructor(leaf: WorkspaceLeaf);
+    getViewType(): string;
+  }
+
+  export interface MarkdownView extends View {
+    editor: Editor;
+  }
+
+  export class MarkdownView {
+    constructor(leaf: WorkspaceLeaf);
+    editor: Editor;
+  }
+
   export interface WorkspaceLeaf {
     setViewState(state: { type: string; active?: boolean }): Promise<void>;
+    view: View;
   }
 
   export interface Workspace {
     getLeavesOfType(type: string): WorkspaceLeaf[];
     getRightLeaf(split: boolean): WorkspaceLeaf | null;
     revealLeaf(leaf: WorkspaceLeaf): Promise<void>;
+  }
+
+  export interface App {
+    vault: { adapter: VaultAdapter };
+    workspace: Workspace;
+    setting: SettingManager;
+    commands: CommandManager;
   }
 
   export interface RequestUrlResponse {
@@ -54,6 +76,16 @@ declare module "obsidian" {
     constructor(app: App);
     open(): void;
     close(): void;
+    onOpen(): void;
+    onClose(): void;
+  }
+
+  export interface Command {
+    id: string;
+    name: string;
+    callback?: () => void | Promise<void>;
+    editorCallback?: (editor: Editor) => void | Promise<void>;
+    checkCallback?: (checking: boolean) => boolean | void;
   }
 
   export class Plugin {
@@ -62,11 +94,7 @@ declare module "obsidian" {
     loadData(): Promise<unknown>;
     saveData(data: unknown): Promise<void>;
     addRibbonIcon(icon: string, title: string, callback: () => void | Promise<void>): HTMLElement;
-    addCommand(command: {
-      id: string;
-      name: string;
-      callback: () => void | Promise<void>;
-    }): unknown;
+    addCommand(command: Command): unknown;
     registerView(type: string, viewCreator: (leaf: WorkspaceLeaf) => ItemView): void;
     addSettingTab(settingTab: PluginSettingTab): void;
   }
