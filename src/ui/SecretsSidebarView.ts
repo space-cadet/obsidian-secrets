@@ -58,6 +58,8 @@ export class SecretsSidebarView extends ItemView {
   private readonly extractBlocks?: (content: string) => Array<{ marker: string; envelope: Envelope }>;
   private readonly writeFile?: (path: string, content: string) => Promise<void>;
   private readonly readFile?: (path: string) => Promise<string>;
+  private readonly encryptSelection?: () => Promise<void>;
+  private readonly decryptSelection?: () => Promise<void>;
   private lockUnsubscribe?: () => void;
 
   constructor(
@@ -70,6 +72,8 @@ export class SecretsSidebarView extends ItemView {
     extractBlocks?: (content: string) => Array<{ marker: string; envelope: Envelope }>,
     writeFile?: (path: string, content: string) => Promise<void>,
     readFile?: (path: string) => Promise<string>,
+    encryptSelection?: () => Promise<void>,
+    decryptSelection?: () => Promise<void>,
   ) {
     super(leaf);
     this.sessionKeyService = sessionKeyService;
@@ -80,6 +84,8 @@ export class SecretsSidebarView extends ItemView {
     this.extractBlocks = extractBlocks;
     this.writeFile = writeFile;
     this.readFile = readFile;
+    this.encryptSelection = encryptSelection;
+    this.decryptSelection = decryptSelection;
   }
 
   getViewType(): string {
@@ -227,7 +233,25 @@ export class SecretsSidebarView extends ItemView {
     unlockCard.append(unlockIcon, heading("Vault unlocked"));
     unlockCard.append(paragraph("The encryption session is active."));
 
-    const lockButton = button("Lock vault", "obsidian-secrets-primary-button");
+    // Quick actions for mobile
+    const actionsDiv = element("div", "obsidian-secrets-actions");
+
+    const encryptBtn = button("🔒 Encrypt selection", "obsidian-secrets-primary-button");
+    encryptBtn.addEventListener("click", () => {
+      void this.encryptSelection?.();
+    });
+    actionsDiv.appendChild(encryptBtn);
+
+    const decryptBtn = button("🔓 Decrypt selection", "obsidian-secrets-secondary-button");
+    decryptBtn.addEventListener("click", () => {
+      void this.decryptSelection?.();
+    });
+    actionsDiv.appendChild(decryptBtn);
+
+    unlockCard.append(actionsDiv);
+    unlockCard.append(paragraph("Select text in a note, then tap a button above.", "obsidian-secrets-helper"));
+
+    const lockButton = button("Lock vault", "obsidian-secrets-secondary-button");
     lockButton.addEventListener("click", () => {
       this.sessionKeyService.lock();
       this.getHistoryService?.().record("vault_locked");

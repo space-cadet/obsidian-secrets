@@ -115,6 +115,8 @@ export default class ObsidianSecretsPlugin extends Plugin {
         await this.app.vault.adapter.write(notePath, content);
       },
       async (notePath: string) => this.app.vault.adapter.read(notePath),
+      () => this.encryptCurrentSelection(),
+      () => this.decryptCurrentSelection(),
     ));
     this.addRibbonIcon("lock-keyhole", "Open Obsidian Secrets", () => this.activateSidebar());
     this.addSettingTab(new SecretsSettingTab(this.app, this, {
@@ -295,6 +297,28 @@ export default class ObsidianSecretsPlugin extends Plugin {
     });
 
     input.click();
+  }
+
+  private async encryptCurrentSelection(): Promise<void> {
+    const activeLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
+    const view = activeLeaf?.view as { editor?: Editor } | undefined;
+    const editor = view?.editor;
+    if (!editor) {
+      new Notice("Open a note in edit mode to encrypt.");
+      return;
+    }
+    await this.encryptSelection(editor);
+  }
+
+  private async decryptCurrentSelection(): Promise<void> {
+    const activeLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
+    const view = activeLeaf?.view as { editor?: Editor } | undefined;
+    const editor = view?.editor;
+    if (!editor) {
+      new Notice("Open a note in edit mode to decrypt.");
+      return;
+    }
+    await this.decryptSelection(editor);
   }
 
   onunload(): void {
