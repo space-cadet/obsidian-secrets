@@ -1,5 +1,7 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
+import { decodeBase64Url, MIN_ITERATIONS } from "../format.js";
 import type { PluginSettings } from "../settings.js";
+import type { SessionKeyService } from "../session/SessionKeyService.js";
 
 export const VIEW_TYPE_SECRETS = "obsidian-secrets-sidebar";
 
@@ -45,17 +47,21 @@ function plannedPill(): HTMLSpanElement {
 
 export class SecretsSidebarView extends ItemView {
   private activeTab: SidebarTab = "vault";
+  private readonly sessionKeyService: SessionKeyService;
   private readonly getPluginSettings?: () => PluginSettings;
   private readonly openPluginSettings?: () => void;
   private readonly checkForUpdates?: () => Promise<void>;
+  private lockUnsubscribe?: () => void;
 
   constructor(
     leaf: WorkspaceLeaf,
+    sessionKeyService: SessionKeyService,
     getPluginSettings?: () => PluginSettings,
     openPluginSettings?: () => void,
     checkForUpdates?: () => Promise<void>,
   ) {
     super(leaf);
+    this.sessionKeyService = sessionKeyService;
     this.getPluginSettings = getPluginSettings;
     this.openPluginSettings = openPluginSettings;
     this.checkForUpdates = checkForUpdates;
@@ -74,10 +80,12 @@ export class SecretsSidebarView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
+    this.lockUnsubscribe = this.sessionKeyService.onLock(() => this.render());
     this.render();
   }
 
   async onClose(): Promise<void> {
+    this.lockUnsubscribe?.();
     this.contentEl.replaceChildren();
   }
 
@@ -85,12 +93,14 @@ export class SecretsSidebarView extends ItemView {
     this.contentEl.className = "obsidian-secrets-view";
     this.contentEl.replaceChildren();
 
+    const isUnlocked = this.sessionKeyService.isUnlocked();
+
     const header = element("header", "obsidian-secrets-header");
     const title = element("div", "obsidian-secrets-title");
     title.textContent = "Obsidian Secrets";
-    const status = element("span", "obsidian-secrets-status-dot");
-    status.title = "Vault locked";
-    status.setAttribute("aria-label", "Vault locked");
+    const status = element("span", isUnlocked ? "obsidian-secrets-status-dot unlocked" : "obsidian-secrets-status-dot");
+    status.title = isUnlocked ? "Vault unlocked" : "Vault locked";
+    status.setAttribute("aria-label", isUnlocked ? "Vault unlocked" : "Vault locked");
     title.append(status);
     header.append(title);
 
@@ -121,6 +131,16 @@ export class SecretsSidebarView extends ItemView {
   }
 
   private renderVault(panel: HTMLElement): void {
+    const isUnlocked = this.sessionKeyService.isUnlocked();
+
+    if (isUnlocked) {
+      this.renderUnlockedVault(panel);
+    } else {
+      this.renderLockedVault(panel);
+    }
+  }
+
+  private renderLockedVault(panel: HTMLElement): void {
     const lockCard = element("section", "obsidian-secrets-card obsidian-secrets-lock-card");
     const lockIcon = element("div", "obsidian-secrets-lock-icon");
     lockIcon.textContent = "LOCKED";
@@ -138,14 +158,35 @@ export class SecretsSidebarView extends ItemView {
     password.setAttribute("aria-label", "Unlock vault");
     const unlock = button("Unlock", "obsidian-secrets-primary-button");
     form.append(label, password, unlock);
-    form.addEventListener("submit", (event) => {
+    form.addEventListener("submit", async (event) => {
       event.preventDefault();
       if (password.value.length === 0) {
         new Notice("Enter a password to continue.");
         return;
       }
+      const pwd = password.value;
       password.value = "";
-      new Notice("Unlock workflow is not connected yet. No password was stored.");
+
+      const settings = this.getPluginSettings?.();
+      const vaultSalt = settings?.vaultSalt;
+      if (!vaultSalt) {
+        new Notice("Vault salt not configured. Open plugin settings to initialize.");
+        return;
+      }
+
+      try {
+        const saltBytes = decodeBase64Url(vaultSalt, "vs");
+        const iterations = settings?.sessionTimeoutMinutes ?? MIN_ITERATIONS;
+        const success = await this.sessionKeyService.unlock(pwd, saltBytes, iterations);
+        if (success) {
+          new Notice("Vault unlocked.");
+          this.render();
+        } else {
+          new Notice("Failed to unlock vault. Check your password.");
+        }
+      } catch {
+        new Notice("Failed to unlock vault.");
+      }
     });
     lockCard.append(form, paragraph("Keys stay in memory only while unlocked.", "obsidian-secrets-helper"));
     panel.append(lockCard);
@@ -153,7 +194,35 @@ export class SecretsSidebarView extends ItemView {
     const policy = element("section", "obsidian-secrets-card");
     const policyHeader = element("div", "obsidian-secrets-card-header");
     policyHeader.append(heading("Key policy", 3), plannedPill());
-    policy.append(policyHeader, paragraph("One vault password per active session. Key choices will be connected after the session-key layer is implemented."));
+    policy.append(policyHeader, paragraph("One vault password per active session. Session expires after inactivity or explicit lock."));
+    panel.append(policy);
+  }
+
+  private renderUnlockedVault(panel: HTMLElement): void {
+    const unlockCard = element("section", "obsidian-secrets-card obsidian-secrets-unlock-card");
+    const unlockIcon = element("div", "obsidian-secrets-lock-icon unlocked");
+    unlockIcon.textContent = "UNLOCKED";
+    unlockIcon.setAttribute("aria-hidden", "true");
+    unlockCard.append(unlockIcon, heading("Vault unlocked"));
+    unlockCard.append(paragraph("The encryption session is active."));
+
+    const lockButton = button("Lock vault", "obsidian-secrets-primary-button");
+    lockButton.addEventListener("click", () => {
+      this.sessionKeyService.lock();
+      new Notice("Vault locked.");
+      this.render();
+    });
+    unlockCard.append(lockButton, paragraph("Click to clear all keys from memory.", "obsidian-secrets-helper"));
+    panel.append(unlockCard);
+
+    const policy = element("section", "obsidian-secrets-card");
+    const policyHeader = element("div", "obsidian-secrets-card-header");
+    policyHeader.append(heading("Key policy", 3));
+    const settings = this.getPluginSettings?.();
+    const timeoutText = settings?.sessionTimeoutMinutes
+      ? `Auto-lock after ${settings.sessionTimeoutMinutes} minutes of inactivity.`
+      : "Auto-lock is disabled.";
+    policy.append(policyHeader, paragraph(`One vault password per active session. ${timeoutText}`));
     panel.append(policy);
   }
 

@@ -11,6 +11,13 @@ test("settings accept only the supported update channel and boolean startup flag
   assert.deepEqual(normalizePluginSettings({ updateChannel: "dev", checkForUpdatesOnStartup: true }), {
     updateChannel: "dev",
     checkForUpdatesOnStartup: true,
+    vaultSalt: undefined,
+    sessionTimeoutMinutes: 15,
   });
-  assert.deepEqual(normalizePluginSettings({ updateChannel: "preview", checkForUpdatesOnStartup: "yes" }), DEFAULT_SETTINGS);
+  assert.deepEqual(normalizePluginSettings({ updateChannel: "preview", checkForUpdatesOnStartup: "yes" }), {
+    updateChannel: "stable",
+    checkForUpdatesOnStartup: false,
+    vaultSalt: undefined,
+    sessionTimeoutMinutes: 15,
+  });
 });

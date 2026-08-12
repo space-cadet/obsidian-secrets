@@ -32,6 +32,16 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, #e3a84f 18%, transparent);
 }
 
+.obsidian-secrets-status-dot.unlocked {
+  background: #4ade80;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #4ade80 18%, transparent);
+}
+
+.obsidian-secrets-lock-icon.unlocked {
+  background: color-mix(in srgb, #4ade80 16%, transparent);
+  color: #4ade80;
+}
+
 .obsidian-secrets-tabs {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));

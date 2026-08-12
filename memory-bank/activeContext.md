@@ -1,8 +1,8 @@
 # Active Context
-*Last Updated: 2026-08-12 15:52:29 IST*
+*Last Updated: 2026-08-12 21:30:00 IST*
 
 ## Current Focus
-T1: Validate the pure inline-encryption layer, T2: establish the cross-platform auto-update boundary, and T3: own the sidebar UI.
+Implement the SessionKeyService to connect the Vault tab to real encryption/decryption. This is the critical foundation for all remaining T1/T3 work.
 
 ## Current State
 - Repository directory created.
@@ -21,17 +21,20 @@ T1: Validate the pure inline-encryption layer, T2: establish the cross-platform 
 - Manual update checks now open a confirmation modal with release details and changelog; install/reload uses the existing transactional updater path.
 - Updater now enforces SHA-256 checksum verification of downloaded assets against the release CHECKSUMS.txt before installation; tampered or incomplete downloads abort with cleanup.
 - Local build and pure-layer tests pass (17 tests including checksum verification).
-- Public GitHub repository is current; the updater modal and Memory Bank closeout are published at `origin/main` commit `cf9ec46`.
+- Public GitHub repository is current; the updater modal and Memory Bank closeout are published at `origin/main` commit `537ae1d`.
+- **NEW: Session-key service design documented. Implementation in progress.**
 
 ## Immediate Next Steps
-1. Verify the first GitHub Actions `dev` release and direct assets after push.
-2. Verify the first real Android installation from a published release.
-3. Add session-key lifecycle tests and connect the locked Vault tab to the non-extractable in-memory key layer.
+1. **IN PROGRESS**: Implement SessionKeyService with non-extractable master key caching.
+2. Wire Vault tab unlock/lock controls to the session-key layer.
+3. Add session-key lifecycle tests (lock, timeout, unload, vault change).
 4. Add editor transaction tests for replacement/save failure behavior.
 5. Add the Obsidian editor and Reading View adapters.
 6. Implement ciphertext-only export/import, non-sensitive history, and real encryption/history Settings controls.
+7. Verify the first real Android installation from a published release.
 
 ## Guardrails
 - Keep the first milestone inline-only.
 - Treat all encryption and persistence errors as fail-closed.
 - Do not add convenience features that expand plaintext lifetime without a separate decision.
+- Session keys must be non-extractable and auto-clear on lock/timeout/unload/vault-change.

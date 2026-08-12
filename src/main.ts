@@ -2,18 +2,36 @@ import { Notice, Plugin, requestUrl } from "obsidian";
 import { GIT_COMMIT_HASH } from "./buildInfo.js";
 import { DEFAULT_SETTINGS, normalizePluginSettings, PluginSettings } from "./settings.js";
 import { SecretsSettingTab } from "./settings/SecretsSettingTab.js";
+import { SessionKeyService } from "./session/SessionKeyService.js";
 import { SecretsSidebarView, VIEW_TYPE_SECRETS } from "./ui/SecretsSidebarView.js";
 import { PluginUpdater } from "./updater/PluginUpdater.js";
 import { UpdateAvailableModal } from "./updater/UpdateAvailableModal.js";
+import { encodeBase64Url, VAULT_SALT_BYTES } from "./format.js";
 
 const REPOSITORY = "space-cadet/obsidian-secrets";
+
+function randomBytes(length: number): Uint8Array {
+  const result = new Uint8Array(length);
+  globalThis.crypto?.getRandomValues(result);
+  return result;
+}
 
 export default class ObsidianSecretsPlugin extends Plugin {
   private settings: PluginSettings = { ...DEFAULT_SETTINGS };
   private updater!: PluginUpdater;
+  private sessionKeyService = new SessionKeyService();
 
   async onload(): Promise<void> {
     this.settings = normalizePluginSettings(await this.loadData());
+
+    // Ensure vault salt exists for session-key derivation
+    if (!this.settings.vaultSalt) {
+      this.settings.vaultSalt = encodeBase64Url(randomBytes(VAULT_SALT_BYTES));
+      await this.saveData(this.settings);
+    }
+
+    this.sessionKeyService.setTimeout(this.settings.sessionTimeoutMinutes ?? 15);
+
     this.updater = new PluginUpdater(
       {
         adapter: this.app.vault.adapter,
@@ -24,6 +42,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
 
     this.registerView(VIEW_TYPE_SECRETS, (leaf) => new SecretsSidebarView(
       leaf,
+      this.sessionKeyService,
       () => this.settings,
       () => this.openPluginSettings(),
       () => this.checkForUpdates(true),
@@ -47,13 +66,27 @@ export default class ObsidianSecretsPlugin extends Plugin {
       callback: () => this.checkForUpdates(true),
     });
 
+    this.addCommand({
+      id: "lock-vault",
+      name: "Lock Obsidian Secrets vault",
+      callback: () => {
+        this.sessionKeyService.lock();
+        new Notice("Obsidian Secrets vault locked.");
+      },
+    });
+
     if (this.settings.checkForUpdatesOnStartup) void this.checkForUpdates(false);
+  }
+
+  onunload(): void {
+    this.sessionKeyService.lock();
   }
 
   private async saveSettings(settings: PluginSettings): Promise<void> {
     const normalized = normalizePluginSettings(settings);
     await this.saveData(normalized);
     this.settings = normalized;
+    this.sessionKeyService.setTimeout(normalized.sessionTimeoutMinutes ?? 15);
   }
 
   private async checkForUpdates(showNotice: boolean): Promise<void> {

@@ -56,7 +56,7 @@ function requirePassword(password: string): void {
   }
 }
 
-async function deriveBlockKey(password: string, envelope: Pick<Envelope, "iter" | "vs" | "bs">): Promise<CryptoKey> {
+async function deriveBlockKeyFromPassword(password: string, envelope: Pick<Envelope, "iter" | "vs" | "bs">): Promise<CryptoKey> {
   const api = subtle();
   const passwordKey = await api.importKey("raw", asBufferSource(new TextEncoder().encode(password)), "PBKDF2", false, ["deriveBits"]);
   const masterBits = await api.deriveBits(
@@ -72,6 +72,68 @@ async function deriveBlockKey(password: string, envelope: Pick<Envelope, "iter" 
     false,
     ["encrypt", "decrypt"],
   );
+}
+
+export async function deriveVaultMasterKey(
+  password: string,
+  vaultSalt: Uint8Array,
+  iterations: number,
+): Promise<CryptoKey> {
+  const api = subtle();
+  const passwordBytes = new TextEncoder().encode(password);
+  const passwordKey = await api.importKey("raw", asBufferSource(passwordBytes), "PBKDF2", false, ["deriveBits"]);
+  // Best-effort password clearing (strings are immutable in JS)
+  passwordBytes.fill(0);
+
+  const masterBits = await api.deriveBits(
+    { name: "PBKDF2", salt: asBufferSource(vaultSalt), iterations, hash: "SHA-256" },
+    passwordKey,
+    256,
+  );
+
+  return api.importKey("raw", masterBits, "HKDF", false, ["deriveKey"]);
+}
+
+export async function deriveBlockKeyFromMaster(
+  masterKey: CryptoKey,
+  blockSalt: Uint8Array,
+): Promise<CryptoKey> {
+  const api = subtle();
+  return api.deriveKey(
+    { name: "HKDF", salt: asBufferSource(blockSalt), hash: "SHA-256", info: asBufferSource(HKDF_INFO) },
+    masterKey,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"],
+  );
+}
+
+async function encryptWithKey(plaintext: string, key: CryptoKey, envelope: Envelope): Promise<string> {
+  const ciphertext = await subtle().encrypt(
+    {
+      name: "AES-GCM",
+      iv: asBufferSource(decodeBase64Url(envelope.iv, "iv")),
+      additionalData: asBufferSource(new TextEncoder().encode(canonicalHeader(envelope))),
+      tagLength: 128,
+    },
+    key,
+    asBufferSource(new TextEncoder().encode(plaintext)),
+  );
+  return serializeEnvelope({ ...envelope, ct: encodeBase64Url(new Uint8Array(ciphertext)) });
+}
+
+async function decryptWithKey(envelope: Envelope, key: CryptoKey): Promise<string> {
+  const plaintext = await subtle().decrypt(
+    {
+      name: "AES-GCM",
+      iv: asBufferSource(decodeBase64Url(envelope.iv, "iv")),
+      additionalData: asBufferSource(new TextEncoder().encode(canonicalHeader(envelope))),
+      tagLength: 128,
+    },
+    key,
+    asBufferSource(decodeBase64Url(envelope.ct, "ct")),
+  );
+  return new TextDecoder("utf-8", { fatal: true }).decode(plaintext);
 }
 
 export type EncryptOptions = {
@@ -95,36 +157,56 @@ export async function encryptBlock(plaintext: string, password: string, options:
     ct: encodeBase64Url(new Uint8Array(GCM_TAG_BYTES)),
   };
   validateEnvelope(envelopeWithoutCiphertext);
-  const key = await deriveBlockKey(password, envelopeWithoutCiphertext);
-  const ciphertext = await subtle().encrypt(
-    {
-      name: "AES-GCM",
-      iv: asBufferSource(decodeBase64Url(envelopeWithoutCiphertext.iv, "iv")),
-      additionalData: asBufferSource(new TextEncoder().encode(canonicalHeader(envelopeWithoutCiphertext))),
-      tagLength: 128,
-    },
-    key,
-    asBufferSource(new TextEncoder().encode(plaintext)),
-  );
-  return serializeEnvelope({ ...envelopeWithoutCiphertext, ct: encodeBase64Url(new Uint8Array(ciphertext)) });
+  const key = await deriveBlockKeyFromPassword(password, envelopeWithoutCiphertext);
+  return encryptWithKey(plaintext, key, envelopeWithoutCiphertext);
 }
 
 export async function decryptBlock(marker: string, password: string): Promise<string> {
   requirePassword(password);
   const envelope = parseSingleBlock(marker);
   try {
-    const key = await deriveBlockKey(password, envelope);
-    const plaintext = await subtle().decrypt(
-      {
-        name: "AES-GCM",
-        iv: asBufferSource(decodeBase64Url(envelope.iv, "iv")),
-        additionalData: asBufferSource(new TextEncoder().encode(canonicalHeader(envelope))),
-        tagLength: 128,
-      },
-      key,
-      asBufferSource(decodeBase64Url(envelope.ct, "ct")),
-    );
-    return new TextDecoder("utf-8", { fatal: true }).decode(plaintext);
+    const key = await deriveBlockKeyFromPassword(password, envelope);
+    const plaintext = await decryptWithKey(envelope, key);
+    return plaintext;
+  } catch {
+    throw new DecryptionError();
+  }
+}
+
+export type SessionEncryptOptions = {
+  vaultSalt: Uint8Array;
+  iterations?: number;
+};
+
+export async function encryptBlockWithMasterKey(
+  plaintext: string,
+  masterKey: CryptoKey,
+  options: SessionEncryptOptions,
+): Promise<string> {
+  const vaultSalt = options.vaultSalt;
+  if (vaultSalt.byteLength !== VAULT_SALT_BYTES) throw new CryptoError("vault salt has the wrong length");
+  const iterations = options.iterations ?? MIN_ITERATIONS;
+  const blockSalt = randomBytes(BLOCK_SALT_BYTES);
+  const envelopeWithoutCiphertext: Envelope = {
+    v: FORMAT_VERSION,
+    alg: ALGORITHM,
+    kdf: KDF,
+    iter: iterations,
+    vs: encodeBase64Url(vaultSalt),
+    bs: encodeBase64Url(blockSalt),
+    iv: encodeBase64Url(randomBytes(IV_BYTES)),
+    ct: encodeBase64Url(new Uint8Array(GCM_TAG_BYTES)),
+  };
+  validateEnvelope(envelopeWithoutCiphertext);
+  const key = await deriveBlockKeyFromMaster(masterKey, blockSalt);
+  return encryptWithKey(plaintext, key, envelopeWithoutCiphertext);
+}
+
+export async function decryptBlockWithMasterKey(marker: string, masterKey: CryptoKey): Promise<string> {
+  const envelope = parseSingleBlock(marker);
+  try {
+    const key = await deriveBlockKeyFromMaster(masterKey, decodeBase64Url(envelope.bs, "bs"));
+    return await decryptWithKey(envelope, key);
   } catch {
     throw new DecryptionError();
   }

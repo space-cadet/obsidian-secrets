@@ -1,8 +1,8 @@
 # Progress
-*Last Updated: 2026-08-12 15:13:44 IST*
+*Last Updated: 2026-08-12 21:30:00 IST*
 
 ## Overall Status
-Foundation and validation phase: 50% complete.
+Foundation and validation phase: 55% complete.
 
 ## Completed
 - Created the project directory.
@@ -15,14 +15,18 @@ Foundation and validation phase: 50% complete.
 - Added the first explicitly opened sidebar UI shell with Vault, Blocks, History, and Settings tabs.
 - Recorded the user-confirmed sidebar screenshot and published the sidebar UI on `main`; ownership is now tracked by T3.
 - Integrated persisted updater channel selection and optional startup checks with the native Obsidian plugin settings page.
+- Added explicit update confirmation modal with release details and transactional install/reload.
+- Added SHA-256 checksum verification of downloaded assets against release CHECKSUMS.txt before installation.
+- Documented SessionKeyService design and security invariants.
 
 ## In Progress
-- T1: safe inline-encryption design and validation.
-- T2: cross-platform plugin auto-update tool.
-- T3: Obsidian sidebar UI and settings surface.
+- T1: safe inline-encryption design and validation — SessionKeyService implementation.
+- T2: cross-platform plugin auto-update tool — Android verification pending.
+- T3: Obsidian sidebar UI and settings-surface — Vault tab session-key wiring pending.
 
 ## Not Started
-- Obsidian editor integration.
-- Session-key wiring, Obsidian editor integration, ciphertext-only export/import, non-sensitive history, and real encryption Settings controls.
+- Obsidian editor integration (encrypt selection, decrypt reveal modal).
+- Session-key wiring to Vault tab UI.
+- Ciphertext-only export/import, non-sensitive history, real encryption Settings controls.
 - Desktop and Android acceptance testing.
 - Security review and release packaging.
