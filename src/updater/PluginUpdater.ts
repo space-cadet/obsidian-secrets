@@ -60,6 +60,17 @@ export const RELEASE_FILES = ["main.js", "manifest.json", "styles.css"] as const
 const BACKUP_STATE_FILE = "state.json";
 const GITHUB_API = "https://api.github.com/repos";
 
+/** Compute SHA-256 hex digest of a UTF-8 string using the Web Crypto API. */
+async function sha256(text: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(text);
+  const subtle = (globalThis as unknown as { crypto?: { subtle: { digest(algorithm: string, data: ArrayBufferView): Promise<ArrayBuffer> } } }).crypto?.subtle;
+  if (!subtle) throw new UpdateError("SHA-256 is unavailable in this environment");
+  const hashBuffer = await subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 /** Compare numeric plugin versions; rolling non-numeric channels sort newer. */
 export function compareVersions(version1: string, version2: string): number {
   const clean1 = version1.replace(/^v/u, "");
@@ -266,6 +277,47 @@ export class PluginUpdater {
     }
   }
 
+  /** Verify SHA-256 checksums of downloaded files against the release checksums asset. */
+  private async verifyChecksums(tempDir: string, release: ReleaseInfo): Promise<void> {
+    const checksumAsset = release.assets.find(
+      (a) => a.name === "CHECKSUMS.txt" || a.name === "checksums.txt",
+    );
+    if (!checksumAsset || !isHttpsUrl(checksumAsset.browser_download_url)) {
+      throw new UpdateError("release is missing a valid CHECKSUMS.txt asset");
+    }
+
+    const response = await this.host.requestUrl({
+      url: checksumAsset.browser_download_url,
+      method: "GET",
+      headers: { "User-Agent": `${this.pluginId}-updater` },
+    });
+
+    const checksumMap = new Map<string, string>();
+    for (const line of response.text.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const parts = trimmed.split(/\s+/);
+      if (parts.length >= 2) {
+        const hash = parts[0].toLowerCase();
+        const name = parts.slice(1).join(" ");
+        if (/^[a-f0-9]{64}$/u.test(hash)) checksumMap.set(name, hash);
+      }
+    }
+
+    for (const filename of RELEASE_FILES) {
+      const expected = checksumMap.get(filename);
+      if (!expected) throw new UpdateError(`CHECKSUMS.txt is missing entry for ${filename}`);
+
+      const content = await this.host.adapter.read(`${tempDir}/${filename}`);
+      const actual = await sha256(content);
+      if (actual !== expected) {
+        throw new UpdateError(
+          `checksum mismatch for ${filename}: expected ${expected.slice(0, 16)}…, got ${actual.slice(0, 16)}…`,
+        );
+      }
+    }
+  }
+
   /** Download direct release assets into an isolated temporary directory. */
   async downloadUpdate(release: ReleaseInfo): Promise<string> {
     const tempDir = `${this.pluginDir}/.update-tmp-${Date.now()}`;
@@ -284,6 +336,7 @@ export class PluginUpdater {
         await this.host.adapter.write(`${tempDir}/${filename}`, response.text);
       }
       await this.validateManifest(`${tempDir}/manifest.json`, normalizeVersion(release.tag_name));
+      await this.verifyChecksums(tempDir, release);
       return tempDir;
     } catch (error) {
       await this.removeDirectory(tempDir);

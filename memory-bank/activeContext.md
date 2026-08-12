@@ -19,18 +19,17 @@ T1: Validate the pure inline-encryption layer, T2: establish the cross-platform 
 - The sidebar Settings tab now includes direct navigation to the native Obsidian plugin settings page.
 - The sidebar Settings tab now launches an explicit updater check using the persisted channel.
 - Manual update checks now open a confirmation modal with release details and changelog; install/reload uses the existing transactional updater path.
-- Local build and pure-layer tests pass.
+- Updater now enforces SHA-256 checksum verification of downloaded assets against the release CHECKSUMS.txt before installation; tampered or incomplete downloads abort with cleanup.
+- Local build and pure-layer tests pass (17 tests including checksum verification).
 - Public GitHub repository is current; the updater modal and Memory Bank closeout are published at `origin/main` commit `cf9ec46`.
 
 ## Immediate Next Steps
-1. Run the browser KDF benchmark on the OnePlus Nord 4 and record the result.
-2. Verify the first GitHub Actions `dev` release and direct assets after push.
-3. Verify the first GitHub `dev` release and local plugin installation from the pushed `main` commit.
-4. Add session-key lifecycle tests and connect the locked Vault tab to the non-extractable in-memory key layer.
-5. Add editor transaction tests for replacement/save failure behavior.
-6. Add the Obsidian editor and Reading View adapters.
-7. Implement ciphertext-only export/import, non-sensitive history, and real encryption/history Settings controls.
-8. Add updater-side checksum enforcement and verify the first real Android installation.
+1. Verify the first GitHub Actions `dev` release and direct assets after push.
+2. Verify the first real Android installation from a published release.
+3. Add session-key lifecycle tests and connect the locked Vault tab to the non-extractable in-memory key layer.
+4. Add editor transaction tests for replacement/save failure behavior.
+5. Add the Obsidian editor and Reading View adapters.
+6. Implement ciphertext-only export/import, non-sensitive history, and real encryption/history Settings controls.
 
 ## Guardrails
 - Keep the first milestone inline-only.
