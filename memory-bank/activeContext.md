@@ -1,5 +1,5 @@
 # Active Context
-*Last Updated: 2026-08-12 12:18:38 IST*
+*Last Updated: 2026-08-12 12:28:43 IST*
 
 ## Current Focus
 T1: Define and validate the safe inline-encryption design before implementation.
@@ -9,7 +9,7 @@ T1: Define and validate the safe inline-encryption design before implementation.
 - Complete mb-core Memory Bank initialized.
 - Existing Obsidian secret plugins reviewed for design and failure-path lessons.
 - No plugin source code has been written.
-- Public GitHub repository setup remains to be completed.
+- Public GitHub repository created and initial `main` commit pushed.
 
 ## Immediate Next Steps
 1. Write the threat model and acceptance-test matrix.

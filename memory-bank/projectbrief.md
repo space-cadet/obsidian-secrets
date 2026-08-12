@@ -1,5 +1,5 @@
 # Project Brief
-*Last Updated: 2026-08-12 12:18:38 IST*
+*Last Updated: 2026-08-12 12:28:43 IST*
 
 ## Project Overview
 **Project Name**: Obsidian Secrets
@@ -33,7 +33,7 @@
 - An independent security review finds no open high-severity findings.
 
 ## Repository
-**URL**: To be created as a public GitHub repository during project setup.
+**URL**: https://github.com/space-cadet/obsidian-secrets
 
 ## Team/Contributors
 - Deepak: Project owner

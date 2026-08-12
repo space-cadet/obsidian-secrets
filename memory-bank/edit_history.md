@@ -1,5 +1,13 @@
 # Edit History
-*Last Updated: 2026-08-12 12:18:38 IST*
+*Last Updated: 2026-08-12 12:28:43 IST*
+
+#### 12:28:43 IST - T1: Record public repository publication
+- Updated `memory-bank/projectbrief.md` - Added the public GitHub repository URL.
+- Updated `memory-bank/activeContext.md` - Recorded initial repository publication.
+- Updated `memory-bank/progress.md` - Recorded the public repository milestone.
+- Updated `memory-bank/tasks/T1.md` - Recorded publication progress.
+- Updated `memory-bank/sessions/2026-08-12-afternoon.md` - Recorded publication and current context.
+- Updated `memory-bank/session_cache.md` - Updated current task progress.
 
 #### 12:18:38 IST - T1: Initialize project and record design plan
 - Created `memory-bank/` - Initialized complete Memory Bank structure with mb-core.
