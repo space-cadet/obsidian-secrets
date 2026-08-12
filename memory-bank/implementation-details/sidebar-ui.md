@@ -1,5 +1,5 @@
 # Sidebar UI Implementation
-*Last Updated: 2026-08-12 15:13:44 IST*
+*Last Updated: 2026-08-12 15:29:46 IST*
 
 ## Ownership
 
@@ -12,6 +12,8 @@ Provide a small, extensible Obsidian sidebar for the encryption workflow while k
 - `src/ui/SecretsSidebarView.ts` registers an Obsidian `ItemView` with four tabs: Vault, Blocks, History, and Settings.
 - `src/main.ts` exposes the view through a ribbon icon and the `Open Obsidian Secrets sidebar` command.
 - `src/settings/SecretsSettingTab.ts` provides the real Obsidian plugin settings page for updater channel and startup-check preferences.
+- The Settings tab includes an `Open plugin settings` button that opens Obsidian's native settings page directly on this plugin.
+- The Settings tab includes a `Check for updates` button that invokes the configured updater check without installing or reloading the plugin.
 - The Vault tab starts locked and renders a password field, but the submit handler clears the field and reports that unlock is not connected. It never derives, stores, or logs a key.
 - Blocks, History, and Settings are honest empty/planned states. Disabled import/export controls are present only as layout affordances.
 - `styles.css` provides the dark, compact sidebar styling shown in the mockup.

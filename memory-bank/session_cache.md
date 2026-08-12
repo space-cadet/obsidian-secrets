@@ -1,6 +1,6 @@
 # Session Cache
 *Created: 2026-08-12 12:18:38 IST*
-*Last Updated: 2026-08-12 15:13:44 IST*
+*Last Updated: 2026-08-12 15:29:46 IST*
 
 ## Current Session
 **Started**: 2026-08-12 12:18:38 IST
@@ -11,7 +11,7 @@
 |----|-------|--------|----------|
 | T1 | Safe inline-encryption design and validation | 🔄 In Progress | Pure security layer; connect session keys/editor/Reading View next |
 | T2 | Cross-platform plugin auto-update tool | 🔄 In Progress | Settings channel and optional startup checks integrated; install/reload/integrity next |
-| T3 | Obsidian sidebar UI and settings surface | 🔄 In Progress | Sidebar ownership moved from T1; security-service integrations next |
+| T3 | Obsidian sidebar UI and settings surface | 🔄 In Progress | Direct plugin-settings and updater-check buttons added; security-service integrations next |
 
 ## Session History
 - `sessions/2026-08-12-afternoon.md`: Project bootstrap and initial secure inline-encryption plan.

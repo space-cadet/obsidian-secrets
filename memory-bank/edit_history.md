@@ -1,7 +1,10 @@
 # Edit History
-*Last Updated: 2026-08-12 15:17:13 IST*
+*Last Updated: 2026-08-12 15:29:46 IST*
 
 ### 2026-08-12
+
+#### 15:29:46 IST - T2, T3: Add direct sidebar settings and updater actions
+- Created `memory-bank/edits/2026-08-12/152946-t2-t3-sidebar-actions.md` - Recorded direct native-settings and updater-check actions.
 
 #### 15:17:13 IST - T2, T3: Move sidebar ownership and integrate updater plugin settings
 - Created `memory-bank/edits/2026-08-12/151713-t2-t3-task-split-updater-settings.md` - Recorded the T3 split and updater settings integration.

@@ -46,10 +46,19 @@ function plannedPill(): HTMLSpanElement {
 export class SecretsSidebarView extends ItemView {
   private activeTab: SidebarTab = "vault";
   private readonly getPluginSettings?: () => PluginSettings;
+  private readonly openPluginSettings?: () => void;
+  private readonly checkForUpdates?: () => Promise<void>;
 
-  constructor(leaf: WorkspaceLeaf, getPluginSettings?: () => PluginSettings) {
+  constructor(
+    leaf: WorkspaceLeaf,
+    getPluginSettings?: () => PluginSettings,
+    openPluginSettings?: () => void,
+    checkForUpdates?: () => Promise<void>,
+  ) {
     super(leaf);
     this.getPluginSettings = getPluginSettings;
+    this.openPluginSettings = openPluginSettings;
+    this.checkForUpdates = checkForUpdates;
   }
 
   getViewType(): string {
@@ -181,7 +190,17 @@ export class SecretsSidebarView extends ItemView {
 
   private renderSettings(panel: HTMLElement): void {
     const card = element("section", "obsidian-secrets-card");
-    card.append(heading("Settings"));
+    const header = element("div", "obsidian-secrets-card-header");
+    header.append(heading("Settings"));
+    const openSettings = button("Open plugin settings", "obsidian-secrets-secondary-button");
+    openSettings.addEventListener("click", () => this.openPluginSettings?.());
+    header.append(openSettings);
+    card.append(header);
+    const updaterActions = element("div", "obsidian-secrets-actions");
+    const checkUpdates = button("Check for updates", "obsidian-secrets-secondary-button");
+    checkUpdates.addEventListener("click", () => void this.checkForUpdates?.());
+    updaterActions.append(checkUpdates);
+    card.append(updaterActions);
     card.append(this.settingRow("Encryption keys", "Choose the vault key policy and session expiry.", "Planned"));
     card.append(this.settingRow("Export and import", "Configure portable ciphertext block bundles.", "Planned"));
     const settings = this.getPluginSettings?.();

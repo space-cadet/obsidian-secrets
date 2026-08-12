@@ -21,7 +21,12 @@ export default class ObsidianSecretsPlugin extends Plugin {
       { repository: REPOSITORY, pluginId: this.manifest.id },
     );
 
-    this.registerView(VIEW_TYPE_SECRETS, (leaf) => new SecretsSidebarView(leaf, () => this.settings));
+    this.registerView(VIEW_TYPE_SECRETS, (leaf) => new SecretsSidebarView(
+      leaf,
+      () => this.settings,
+      () => this.openPluginSettings(),
+      () => this.checkForUpdates(true),
+    ));
     this.addRibbonIcon("lock-keyhole", "Open Obsidian Secrets", () => this.activateSidebar());
     this.addSettingTab(new SecretsSettingTab(this.app, this, {
       getSettings: () => this.settings,
@@ -60,6 +65,11 @@ export default class ObsidianSecretsPlugin extends Plugin {
     } else {
       new Notice("Obsidian Secrets is up to date.");
     }
+  }
+
+  private openPluginSettings(): void {
+    this.app.setting.open();
+    this.app.setting.openTabById(this.manifest.id);
   }
 
   private async activateSidebar(): Promise<void> {

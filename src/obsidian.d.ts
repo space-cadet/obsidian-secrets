@@ -11,6 +11,12 @@ declare module "obsidian" {
   export interface App {
     vault: { adapter: VaultAdapter };
     workspace: Workspace;
+    setting: SettingManager;
+  }
+
+  export interface SettingManager {
+    open(): void;
+    openTabById(id: string): void;
   }
 
   export interface WorkspaceLeaf {

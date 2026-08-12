@@ -1,5 +1,5 @@
 # Changelog
-*Last Updated: 2026-08-12 15:13:44 IST*
+*Last Updated: 2026-08-12 15:23:00 IST*
 
 ## 2026-08-12
 - Initialized the Obsidian Secrets project and complete mb-core Memory Bank.
@@ -13,3 +13,5 @@
 - Recorded the user-confirmed Vault-tab screenshot as the current visual acceptance reference.
 - Merged and pushed the sidebar UI implementation and Memory Bank updates to `main`.
 - Moved sidebar UI ownership to T3 and integrated updater channel/startup-check preferences with persisted Obsidian plugin settings.
+- Added direct navigation from the sidebar Settings tab to the native Obsidian plugin settings page.
+- Added a direct “Check for updates” action to the sidebar Settings tab.

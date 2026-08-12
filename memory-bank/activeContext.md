@@ -1,5 +1,5 @@
 # Active Context
-*Last Updated: 2026-08-12 15:13:44 IST*
+*Last Updated: 2026-08-12 15:29:46 IST*
 
 ## Current Focus
 T1: Validate the pure inline-encryption layer, T2: establish the cross-platform auto-update boundary, and T3: own the sidebar UI.
@@ -16,6 +16,8 @@ T1: Validate the pure inline-encryption layer, T2: establish the cross-platform 
 - Sidebar implementation, confirmed reference, and Memory Bank updates are merged and pushed to `origin/main` at `f632d487`.
 - Sidebar ownership is now tracked by T3 rather than T1.
 - Updater channel and optional startup-check settings are persisted through the native Obsidian plugin settings page.
+- The sidebar Settings tab now includes direct navigation to the native Obsidian plugin settings page.
+- The sidebar Settings tab now launches an explicit updater check using the persisted channel.
 - Local build and pure-layer tests pass.
 - Public GitHub repository created; this session's changes are prepared for the requested commit and push.
 
