@@ -1,5 +1,5 @@
 # Active Context
-*Last Updated: 2026-08-12 15:42:30 IST*
+*Last Updated: 2026-08-12 15:52:29 IST*
 
 ## Current Focus
 T1: Validate the pure inline-encryption layer, T2: establish the cross-platform auto-update boundary, and T3: own the sidebar UI.
@@ -20,7 +20,7 @@ T1: Validate the pure inline-encryption layer, T2: establish the cross-platform 
 - The sidebar Settings tab now launches an explicit updater check using the persisted channel.
 - Manual update checks now open a confirmation modal with release details and changelog; install/reload uses the existing transactional updater path.
 - Local build and pure-layer tests pass.
-- Public GitHub repository created; this session's changes are prepared for the requested commit and push.
+- Public GitHub repository is current; the updater modal and Memory Bank closeout are published at `origin/main` commit `cf9ec46`.
 
 ## Immediate Next Steps
 1. Run the browser KDF benchmark on the OnePlus Nord 4 and record the result.

@@ -1,7 +1,10 @@
 # Edit History
-*Last Updated: 2026-08-12 15:42:30 IST*
+*Last Updated: 2026-08-12 15:52:29 IST*
 
 ### 2026-08-12
+
+#### 15:52:29 IST - T2: Close out updater modal publication
+- Created `memory-bank/edits/2026-08-12/155229-t2-modal-publication.md` - Recorded the final Memory Bank refresh and publication state.
 
 #### 15:42:30 IST - T2: Restore the manual update confirmation modal
 - Created `memory-bank/edits/2026-08-12/154230-t2-update-modal.md` - Recorded the confirmation modal, transactional install/reload path, documentation updates, and verification state.

@@ -1,5 +1,5 @@
 # Changelog
-*Last Updated: 2026-08-12 15:42:30 IST*
+*Last Updated: 2026-08-12 15:52:29 IST*
 
 ## 2026-08-12
 - Initialized the Obsidian Secrets project and complete mb-core Memory Bank.
@@ -16,3 +16,4 @@
 - Added direct navigation from the sidebar Settings tab to the native Obsidian plugin settings page.
 - Added a direct “Check for updates” action to the sidebar Settings tab.
 - Restored the manual “Update Available” confirmation modal with changelog, transactional install, and reload action.
+- Refreshed the Memory Bank to record the modal implementation, verification, and publication state.

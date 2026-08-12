@@ -1,5 +1,5 @@
 # Sidebar UI Implementation
-*Last Updated: 2026-08-12 15:42:30 IST*
+*Last Updated: 2026-08-12 15:52:29 IST*
 
 ## Ownership
 
@@ -47,7 +47,7 @@ The generated image is a design reference; the user-provided screenshot is the c
 
 The updater summary shown in the sidebar reads persisted settings; changing those settings is intentionally handled by the native Obsidian plugin settings page.
 
-The implementation and both references were merged into local `main` and pushed to `origin/main` in merge commit `f632d487e891e91b457da13374ead4438769068b`.
+The implementation, both references, updater settings/modal, and related Memory Bank records are published on `main` at commit `cf9ec461ae127abbaecf852da66ad6c0f886cecf`.
 
 ## Next Integration Steps
 1. Add session-key lifecycle state and connect the Vault tab to it.
