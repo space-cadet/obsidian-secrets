@@ -1,8 +1,8 @@
 # Active Context
-*Last Updated: 2026-08-12 21:30:00 IST*
+*Last Updated: 2026-08-13 04:45:00 IST*
 
 ## Current Focus
-Implement the SessionKeyService to connect the Vault tab to real encryption/decryption. This is the critical foundation for all remaining T1/T3 work.
+Complete T1 remaining work: ciphertext-only export/import and non-sensitive security history. Then move to T2 Android verification and T3 Blocks/History tab wiring.
 
 ## Current State
 - Repository directory created.
@@ -20,18 +20,20 @@ Implement the SessionKeyService to connect the Vault tab to real encryption/decr
 - The sidebar Settings tab now launches an explicit updater check using the persisted channel.
 - Manual update checks now open a confirmation modal with release details and changelog; install/reload uses the existing transactional updater path.
 - Updater now enforces SHA-256 checksum verification of downloaded assets against the release CHECKSUMS.txt before installation; tampered or incomplete downloads abort with cleanup.
-- Local build and pure-layer tests pass (17 tests including checksum verification).
-- Public GitHub repository is current; the updater modal and Memory Bank closeout are published at `origin/main` commit `537ae1d`.
-- **NEW: Session-key service design documented. Implementation in progress.**
+- Local build and pure-layer tests pass (26 tests including checksum verification and session-key lifecycle).
+- Public GitHub repository is current; session-key service and editor commands published at `origin/main` commit `cde13cf`.
+- SessionKeyService implemented with non-extractable master key caching, auto-timeout, and lifecycle tests.
+- Vault tab wired to real session-key state (unlock/lock, green status indicator).
+- Editor encrypt/decrypt selection commands implemented with reveal modal.
 
 ## Immediate Next Steps
-1. **IN PROGRESS**: Implement SessionKeyService with non-extractable master key caching.
-2. Wire Vault tab unlock/lock controls to the session-key layer.
-3. Add session-key lifecycle tests (lock, timeout, unload, vault change).
-4. Add editor transaction tests for replacement/save failure behavior.
-5. Add the Obsidian editor and Reading View adapters.
-6. Implement ciphertext-only export/import, non-sensitive history, and real encryption/history Settings controls.
-7. Verify the first real Android installation from a published release.
+1. ✅ IN PROGRESS: SessionKeyService with non-extractable master key caching — COMPLETE.
+2. ✅ Wire Vault tab unlock/lock to session-key layer — COMPLETE.
+3. ✅ Add editor transaction actions — COMPLETE.
+4. Implement ciphertext-only export/import (T1.5).
+5. Implement non-sensitive security history (T1.6).
+6. Verify the first real Android installation from a published release (T2).
+7. Wire Blocks and History tabs to real data (T3).
 
 ## Guardrails
 - Keep the first milestone inline-only.

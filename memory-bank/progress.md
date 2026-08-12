@@ -1,8 +1,8 @@
 # Progress
-*Last Updated: 2026-08-12 21:30:00 IST*
+*Last Updated: 2026-08-13 04:45:00 IST*
 
 ## Overall Status
-Foundation and validation phase: 55% complete.
+Foundation and validation phase: 70% complete.
 
 ## Completed
 - Created the project directory.
@@ -18,11 +18,14 @@ Foundation and validation phase: 55% complete.
 - Added explicit update confirmation modal with release details and transactional install/reload.
 - Added SHA-256 checksum verification of downloaded assets against release CHECKSUMS.txt before installation.
 - Documented SessionKeyService design and security invariants.
+- Implemented SessionKeyService with non-extractable master key caching, auto-timeout, and lifecycle tests.
+- Wired Vault tab unlock/lock to SessionKeyService.
+- Added editor encrypt/decrypt selection commands with reveal modal.
 
 ## In Progress
-- T1: safe inline-encryption design and validation — SessionKeyService implementation.
+- T1: safe inline-encryption design and validation — export/import and history remaining.
 - T2: cross-platform plugin auto-update tool — Android verification pending.
-- T3: Obsidian sidebar UI and settings-surface — Vault tab session-key wiring pending.
+- T3: Obsidian sidebar UI and settings-surface — Vault tab wired, Blocks/History pending.
 
 ## Not Started
 - Obsidian editor integration (encrypt selection, decrypt reveal modal).
