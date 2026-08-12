@@ -1,5 +1,5 @@
 # Changelog
-*Last Updated: 2026-08-12 14:30:19 IST*
+*Last Updated: 2026-08-12 14:34:10 IST*
 
 ## 2026-08-12
 - Initialized the Obsidian Secrets project and complete mb-core Memory Bank.
@@ -11,3 +11,4 @@
 - Added the first explicitly opened Obsidian sidebar UI with Vault, Blocks, History, and Settings tabs.
 - Added the sidebar UI mock screenshot and recorded the security boundaries for future session-key, editor, export/import, history, and settings work.
 - Recorded the user-confirmed Vault-tab screenshot as the current visual acceptance reference.
+- Merged and pushed the sidebar UI implementation and Memory Bank updates to `main`.

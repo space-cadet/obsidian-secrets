@@ -1,5 +1,5 @@
 # Sidebar UI Implementation
-*Last Updated: 2026-08-12 14:30:19 IST*
+*Last Updated: 2026-08-12 14:34:10 IST*
 
 ## Purpose
 Provide a small, extensible Obsidian sidebar for the encryption workflow while keeping all security-sensitive behavior behind explicit future integrations.
@@ -37,6 +37,8 @@ Host encryption-key choices, session expiry, export/import policy, and updater c
 ![User-confirmed sidebar UI](../assets/screenshots/obsidian-secrets-sidebar-user-confirmed.jpg)
 
 The generated image is a design reference; the user-provided screenshot is the current visual acceptance reference. Neither image is evidence that the encryption workflow is implemented.
+
+The implementation and both references were merged into local `main` and pushed to `origin/main` in merge commit `f632d487e891e91b457da13374ead4438769068b`.
 
 ## Next Integration Steps
 1. Add session-key lifecycle state and connect the Vault tab to it.

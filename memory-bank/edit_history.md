@@ -1,7 +1,10 @@
 # Edit History
-*Last Updated: 2026-08-12 14:30:19 IST*
+*Last Updated: 2026-08-12 14:34:10 IST*
 
 ### 2026-08-12
+
+#### 14:34:10 IST - T1: Record sidebar UI merge and main publication
+- Created `memory-bank/edits/2026-08-12/143410-t1-sidebar-ui-main-publication.md` - Recorded the merged and pushed main-branch result.
 
 #### 14:30:19 IST - T1: Record user-confirmed sidebar UI and prepare main publication
 - Created `memory-bank/edits/2026-08-12/143019-t1-sidebar-ui-confirmation.md` - Recorded the user-confirmed screenshot and Memory Bank updates.
