@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS, normalizePluginSettings, PluginSettings } from "./set
 import { SecretsSettingTab } from "./settings/SecretsSettingTab.js";
 import { SecretsSidebarView, VIEW_TYPE_SECRETS } from "./ui/SecretsSidebarView.js";
 import { PluginUpdater } from "./updater/PluginUpdater.js";
+import { UpdateAvailableModal } from "./updater/UpdateAvailableModal.js";
 
 const REPOSITORY = "space-cadet/obsidian-secrets";
 
@@ -60,8 +61,20 @@ export default class ObsidianSecretsPlugin extends Plugin {
     if (!showNotice && !result.hasUpdate) return;
     if (result.unavailable) {
       new Notice("Could not check for Obsidian Secrets updates.");
-    } else if (result.hasUpdate) {
-      new Notice(`Obsidian Secrets update available: ${result.latestVersion} (${this.settings.updateChannel}).`);
+    } else if (result.hasUpdate && result.release) {
+      if (!showNotice) {
+        new Notice(`Obsidian Secrets update available: ${result.latestVersion} (${this.settings.updateChannel}).`);
+        return;
+      }
+      new UpdateAvailableModal(
+        this.app,
+        result,
+        async (release) => {
+          const tempDir = await this.updater.downloadUpdate(release);
+          await this.updater.installUpdate(tempDir);
+        },
+        () => this.reloadPlugin(),
+      ).open();
     } else {
       new Notice("Obsidian Secrets is up to date.");
     }
@@ -70,6 +83,10 @@ export default class ObsidianSecretsPlugin extends Plugin {
   private openPluginSettings(): void {
     this.app.setting.open();
     this.app.setting.openTabById(this.manifest.id);
+  }
+
+  private reloadPlugin(): void {
+    this.app.commands.executeCommandById("app:reload");
   }
 
   private async activateSidebar(): Promise<void> {

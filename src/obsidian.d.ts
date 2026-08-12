@@ -12,6 +12,11 @@ declare module "obsidian" {
     vault: { adapter: VaultAdapter };
     workspace: Workspace;
     setting: SettingManager;
+    commands: CommandManager;
+  }
+
+  export interface CommandManager {
+    executeCommandById(id: string): void | Promise<void>;
   }
 
   export interface SettingManager {
@@ -41,6 +46,14 @@ declare module "obsidian" {
 
   export class Notice {
     constructor(message: string);
+  }
+
+  export class Modal {
+    app: App;
+    contentEl: HTMLElement;
+    constructor(app: App);
+    open(): void;
+    close(): void;
   }
 
   export class Plugin {
@@ -88,6 +101,7 @@ declare module "obsidian" {
   export interface ButtonComponent {
     setButtonText(text: string): this;
     setCta(): this;
+    setDisabled(disabled: boolean): this;
     onClick(callback: () => void | Promise<void>): this;
   }
 

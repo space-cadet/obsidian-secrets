@@ -24,7 +24,7 @@ The current prototype includes a presentation-only Obsidian sidebar shell while 
 - `src/crypto.ts` derives a vault master key, derives a per-block key, and performs AES-256-GCM encryption/decryption through Web Crypto.
 - `src/updater/PluginUpdater.ts` provides stable/dev release checks, direct-asset staging, manifest validation, transactional installation, and rollback without touching secret data.
 - `src/ui/SecretsSidebarView.ts` provides explicitly opened Vault, Blocks, History, and Settings tabs. Unlock, editor integration, export/import, and history storage are not connected yet; updater settings persistence is implemented separately.
-- `src/settings/SecretsSettingTab.ts` provides persisted stable/dev channel selection, optional startup checks, and an explicit update-check action. It does not install or reload updates automatically.
+- `src/settings/SecretsSettingTab.ts` provides persisted stable/dev channel selection, optional notice-only startup checks, and an explicit update-check action that opens a confirmation modal before installation/reload.
 - `test/pure-layer.test.mjs` covers round trips, Unicode, malformed input, tampering, wrong passwords, and unsafe KDF settings.
 - `test/updater.test.mjs` covers stable/dev detection, commit-aware rolling releases, asset validation, download isolation, and rollback after partial writes.
 

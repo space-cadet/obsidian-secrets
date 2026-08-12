@@ -1,7 +1,10 @@
 # Edit History
-*Last Updated: 2026-08-12 15:29:46 IST*
+*Last Updated: 2026-08-12 15:42:30 IST*
 
 ### 2026-08-12
+
+#### 15:42:30 IST - T2: Restore the manual update confirmation modal
+- Created `memory-bank/edits/2026-08-12/154230-t2-update-modal.md` - Recorded the confirmation modal, transactional install/reload path, documentation updates, and verification state.
 
 #### 15:29:46 IST - T2, T3: Add direct sidebar settings and updater actions
 - Created `memory-bank/edits/2026-08-12/152946-t2-t3-sidebar-actions.md` - Recorded direct native-settings and updater-check actions.

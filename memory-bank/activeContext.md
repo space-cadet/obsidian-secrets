@@ -1,5 +1,5 @@
 # Active Context
-*Last Updated: 2026-08-12 15:29:46 IST*
+*Last Updated: 2026-08-12 15:42:30 IST*
 
 ## Current Focus
 T1: Validate the pure inline-encryption layer, T2: establish the cross-platform auto-update boundary, and T3: own the sidebar UI.
@@ -18,6 +18,7 @@ T1: Validate the pure inline-encryption layer, T2: establish the cross-platform 
 - Updater channel and optional startup-check settings are persisted through the native Obsidian plugin settings page.
 - The sidebar Settings tab now includes direct navigation to the native Obsidian plugin settings page.
 - The sidebar Settings tab now launches an explicit updater check using the persisted channel.
+- Manual update checks now open a confirmation modal with release details and changelog; install/reload uses the existing transactional updater path.
 - Local build and pure-layer tests pass.
 - Public GitHub repository created; this session's changes are prepared for the requested commit and push.
 
@@ -29,7 +30,7 @@ T1: Validate the pure inline-encryption layer, T2: establish the cross-platform 
 5. Add editor transaction tests for replacement/save failure behavior.
 6. Add the Obsidian editor and Reading View adapters.
 7. Implement ciphertext-only export/import, non-sensitive history, and real encryption/history Settings controls.
-8. Add updater confirmation, transactional install, checksum enforcement, reload, and Android acceptance.
+8. Add updater-side checksum enforcement and verify the first real Android installation.
 
 ## Guardrails
 - Keep the first milestone inline-only.

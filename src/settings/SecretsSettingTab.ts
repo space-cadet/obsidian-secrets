@@ -24,7 +24,7 @@ export class SecretsSettingTab extends PluginSettingTab {
     containerEl.append(heading);
 
     const description = document.createElement("p");
-    description.textContent = "Updater checks are explicit and never install or reload the plugin automatically.";
+    description.textContent = "Startup checks report updates; manual checks require confirmation before installation and reload.";
     containerEl.append(description);
 
     new Setting(containerEl)
@@ -46,7 +46,7 @@ export class SecretsSettingTab extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName("Check for updates on startup")
-      .setDesc("Check the selected channel when Obsidian loads. Updates are not installed automatically.")
+      .setDesc("Check the selected channel when Obsidian loads. Startup checks never install or reload updates.")
       .addToggle((toggle) => {
         toggle
           .setValue(this.options.getSettings().checkForUpdatesOnStartup)

@@ -5,7 +5,7 @@ source_commit: 87c9f96ed0c476f6a7d94036a5342a9feb4e2b78
 
 # Session 2026-08-12 - Afternoon
 *Created: 2026-08-12 12:18:38 IST*
-*Last Updated: 2026-08-12 15:29:46 IST*
+*Last Updated: 2026-08-12 15:42:30 IST*
 
 ## Focus Task
 T1: Safe inline-encryption design and validation.
@@ -70,3 +70,5 @@ At 15:13:44 IST, sidebar ownership was moved from T1 to new task T3, `Obsidian s
 The updater was integrated with persisted Obsidian plugin settings. Users can select the stable or development channel, enable optional update checks on startup, and run an explicit “Check for updates” action. The selected channel is also reflected in the sidebar Settings tab. Automatic installation, reload, checksum enforcement, and Android acceptance remain deferred.
 
 At 15:29:46 IST, the sidebar Settings tab gained two direct actions: `Open plugin settings` opens the native Obsidian settings page for this plugin, and `Check for updates` invokes the configured stable/dev updater check. Neither action installs or reloads the plugin automatically.
+
+At 15:42:30 IST, the manual updater flow was restored from the proven `obsidian-git` modal structure. Explicit checks now show current/latest versions, prerelease status, and release changelog before an `Install & Reload` confirmation. The existing staged download and transactional rollback path runs only after confirmation; startup checks remain notice-only. The change is ready for verification and push.
