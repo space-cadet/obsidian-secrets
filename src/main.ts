@@ -81,6 +81,14 @@ export default class ObsidianSecretsPlugin extends Plugin {
 
   async onload(): Promise<void> {
     this.settings = normalizePluginSettings(await this.loadData());
+
+    // Setup history persistence
+    const pluginDir = `.obsidian/plugins/${this.manifest.id}`;
+    this.historyService.setPersistence(
+      this.app.vault.adapter,
+      `${pluginDir}/history.json`,
+    );
+    await this.historyService.load();
     this.historyService.record("plugin_loaded");
 
     // Ensure vault salt exists for session-key derivation
@@ -321,8 +329,9 @@ export default class ObsidianSecretsPlugin extends Plugin {
     await this.decryptSelection(editor);
   }
 
-  onunload(): void {
+  async onunload(): Promise<void> {
     this.historyService.record("plugin_unloaded");
+    await this.historyService.save();
     this.sessionKeyService.lock();
   }
 

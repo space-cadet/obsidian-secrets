@@ -202,8 +202,7 @@ export class SecretsSidebarView extends ItemView {
 
       try {
         const saltBytes = decodeBase64Url(vaultSalt, "vs");
-        const iterations = settings?.sessionTimeoutMinutes ?? MIN_ITERATIONS;
-        const success = await this.sessionKeyService.unlock(pwd, saltBytes, iterations);
+        const success = await this.sessionKeyService.unlock(pwd, saltBytes, MIN_ITERATIONS);
         if (success) {
           this.getHistoryService?.().record("vault_unlocked");
           new Notice("Vault unlocked.");

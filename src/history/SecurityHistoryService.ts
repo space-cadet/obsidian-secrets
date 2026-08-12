@@ -16,9 +16,49 @@ export type SecurityEvent = {
   details?: string; // non-sensitive context, e.g. "note: MyNote.md"
 };
 
+export type PersistedHistory = {
+  version: 1;
+  events: SecurityEvent[];
+};
+
 export class SecurityHistoryService {
   private events: SecurityEvent[] = [];
   private maxEvents = 100;
+  private adapter?: { read(path: string): Promise<string>; write(path: string, data: string): Promise<void> };
+  private filePath?: string;
+  private dirty = false;
+
+  /**
+   * Configure persistence. Call before using record().
+   */
+  setPersistence(
+    adapter: { read(path: string): Promise<string>; write(path: string, data: string): Promise<void> },
+    filePath: string,
+  ): void {
+    this.adapter = adapter;
+    this.filePath = filePath;
+  }
+
+  async load(): Promise<void> {
+    if (!this.adapter || !this.filePath) return;
+    try {
+      const data = await this.adapter.read(this.filePath);
+      const parsed = JSON.parse(data) as PersistedHistory;
+      if (parsed.version === 1 && Array.isArray(parsed.events)) {
+        this.events = parsed.events.slice(0, this.maxEvents);
+      }
+    } catch {
+      // File doesn't exist or is corrupt — start fresh
+      this.events = [];
+    }
+  }
+
+  async save(): Promise<void> {
+    if (!this.adapter || !this.filePath || !this.dirty) return;
+    const payload: PersistedHistory = { version: 1, events: this.events };
+    await this.adapter.write(this.filePath, JSON.stringify(payload, null, 2));
+    this.dirty = false;
+  }
 
   record(type: SecurityEventType, details?: string): void {
     const event: SecurityEvent = {
@@ -31,6 +71,7 @@ export class SecurityHistoryService {
     if (this.events.length > this.maxEvents) {
       this.events = this.events.slice(0, this.maxEvents);
     }
+    this.dirty = true;
   }
 
   getEvents(limit = 50): SecurityEvent[] {
@@ -43,6 +84,7 @@ export class SecurityHistoryService {
 
   clear(): void {
     this.events = [];
+    this.dirty = true;
   }
 
   private generateId(): string {
