@@ -1,8 +1,8 @@
 # Active Context
-*Last Updated: 2026-08-12 14:34:10 IST*
+*Last Updated: 2026-08-12 15:13:44 IST*
 
 ## Current Focus
-T1: Validate the pure inline-encryption layer and T2: establish the cross-platform auto-update boundary.
+T1: Validate the pure inline-encryption layer, T2: establish the cross-platform auto-update boundary, and T3: own the sidebar UI.
 
 ## Current State
 - Repository directory created.
@@ -14,6 +14,8 @@ T1: Validate the pure inline-encryption layer and T2: establish the cross-platfo
 - First Obsidian sidebar UI shell implemented with explicit Vault, Blocks, History, and Settings tabs.
 - User confirmed the current sidebar composition; the reference screenshot is stored in the Memory Bank.
 - Sidebar implementation, confirmed reference, and Memory Bank updates are merged and pushed to `origin/main` at `f632d487`.
+- Sidebar ownership is now tracked by T3 rather than T1.
+- Updater channel and optional startup-check settings are persisted through the native Obsidian plugin settings page.
 - Local build and pure-layer tests pass.
 - Public GitHub repository created; this session's changes are prepared for the requested commit and push.
 
@@ -24,8 +26,8 @@ T1: Validate the pure inline-encryption layer and T2: establish the cross-platfo
 4. Add session-key lifecycle tests and connect the locked Vault tab to the non-extractable in-memory key layer.
 5. Add editor transaction tests for replacement/save failure behavior.
 6. Add the Obsidian editor and Reading View adapters.
-7. Implement ciphertext-only export/import, non-sensitive history, and real Settings controls.
-8. Integrate updater settings, startup scheduling, confirmation UI, and reload behavior.
+7. Implement ciphertext-only export/import, non-sensitive history, and real encryption/history Settings controls.
+8. Add updater confirmation, transactional install, checksum enforcement, reload, and Android acceptance.
 
 ## Guardrails
 - Keep the first milestone inline-only.

@@ -21,7 +21,7 @@ The updater uses injected host functions so the production adapter can pass Obsi
 - A partial installation is rolled back before the error is reported.
 - Update state is stored under `.obsidian/plugins/obsidian-secrets/.backup` and contains only runtime files and file-presence metadata.
 - No update error path logs or persists secret-plugin data.
-- The updater does not silently install during this pure-layer milestone. Startup scheduling, settings, confirmation UI, and reload behavior belong to the plugin shell after the Obsidian adapter exists.
+- The updater does not silently install. The plugin shell now persists the selected stable/dev channel and an optional startup-check preference in Obsidian plugin settings. Startup checks only report available updates; installation, confirmation, reload, and artifact-integrity enforcement remain separate gates.
 
 ## Release contract
 

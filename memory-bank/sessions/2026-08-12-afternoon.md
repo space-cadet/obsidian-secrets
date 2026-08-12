@@ -5,7 +5,7 @@ source_commit: 87c9f96ed0c476f6a7d94036a5342a9feb4e2b78
 
 # Session 2026-08-12 - Afternoon
 *Created: 2026-08-12 12:18:38 IST*
-*Last Updated: 2026-08-12 14:34:10 IST*
+*Last Updated: 2026-08-12 15:13:44 IST*
 
 ## Focus Task
 T1: Safe inline-encryption design and validation.
@@ -62,3 +62,9 @@ At 14:30:19 IST, the user confirmed the current sidebar composition and supplied
 The existing `agent/sidebar-ui` branch is ready to merge into local `main` and push to `origin/main`. No new UI functionality is being added in this publication step.
 
 The merge completed successfully. `main` now contains merge commit `f632d487e891e91b457da13374ead4438769068b`, and the canonical `pnpm test` passed on the merged tree with 13 tests passing.
+
+## Task Ownership and Updater Settings
+
+At 15:13:44 IST, sidebar ownership was moved from T1 to new task T3, `Obsidian sidebar UI and settings surface`. T1 now remains focused on encryption, session keys, editor transactions, and Reading View security behavior.
+
+The updater was integrated with persisted Obsidian plugin settings. Users can select the stable or development channel, enable optional update checks on startup, and run an explicit “Check for updates” action. The selected channel is also reflected in the sidebar Settings tab. Automatic installation, reload, checksum enforcement, and Android acceptance remain deferred.

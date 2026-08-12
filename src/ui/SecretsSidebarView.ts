@@ -1,4 +1,5 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
+import type { PluginSettings } from "../settings.js";
 
 export const VIEW_TYPE_SECRETS = "obsidian-secrets-sidebar";
 
@@ -44,9 +45,11 @@ function plannedPill(): HTMLSpanElement {
 
 export class SecretsSidebarView extends ItemView {
   private activeTab: SidebarTab = "vault";
+  private readonly getPluginSettings?: () => PluginSettings;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, getPluginSettings?: () => PluginSettings) {
     super(leaf);
+    this.getPluginSettings = getPluginSettings;
   }
 
   getViewType(): string {
@@ -181,7 +184,10 @@ export class SecretsSidebarView extends ItemView {
     card.append(heading("Settings"));
     card.append(this.settingRow("Encryption keys", "Choose the vault key policy and session expiry.", "Planned"));
     card.append(this.settingRow("Export and import", "Configure portable ciphertext block bundles.", "Planned"));
-    card.append(this.settingRow("Updater", "Choose stable or development releases and require confirmation before reload.", "Planned"));
+    const settings = this.getPluginSettings?.();
+    const channel = settings?.updateChannel === "dev" ? "Development" : "Stable";
+    const startup = settings?.checkForUpdatesOnStartup ? "On" : "Off";
+    card.append(this.settingRow("Updater", `Channel: ${channel}. Startup checks: ${startup}. Configure these in Obsidian Settings.`, "Configured"));
     panel.append(card);
   }
 

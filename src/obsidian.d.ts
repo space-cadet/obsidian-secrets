@@ -40,6 +40,8 @@ declare module "obsidian" {
   export class Plugin {
     app: App;
     manifest: { id: string; version: string };
+    loadData(): Promise<unknown>;
+    saveData(data: unknown): Promise<void>;
     addRibbonIcon(icon: string, title: string, callback: () => void | Promise<void>): HTMLElement;
     addCommand(command: {
       id: string;
@@ -47,6 +49,7 @@ declare module "obsidian" {
       callback: () => void | Promise<void>;
     }): unknown;
     registerView(type: string, viewCreator: (leaf: WorkspaceLeaf) => ItemView): void;
+    addSettingTab(settingTab: PluginSettingTab): void;
   }
 
   export class ItemView {
@@ -57,5 +60,37 @@ declare module "obsidian" {
     getViewType(): string;
     getDisplayText(): string;
     getIcon(): string;
+  }
+
+  export class PluginSettingTab {
+    constructor(app: App, plugin: Plugin);
+    containerEl: HTMLElement;
+    display(): void;
+  }
+
+  export interface DropdownComponent {
+    addOption(value: string, display: string): this;
+    setValue(value: string): this;
+    onChange(callback: (value: string) => void | Promise<void>): this;
+  }
+
+  export interface ToggleComponent {
+    setValue(value: boolean): this;
+    onChange(callback: (value: boolean) => void | Promise<void>): this;
+  }
+
+  export interface ButtonComponent {
+    setButtonText(text: string): this;
+    setCta(): this;
+    onClick(callback: () => void | Promise<void>): this;
+  }
+
+  export class Setting {
+    constructor(containerEl: HTMLElement);
+    setName(name: string): this;
+    setDesc(description: string): this;
+    addDropdown(callback: (component: DropdownComponent) => void): this;
+    addToggle(callback: (component: ToggleComponent) => void): this;
+    addButton(callback: (component: ButtonComponent) => void): this;
   }
 }

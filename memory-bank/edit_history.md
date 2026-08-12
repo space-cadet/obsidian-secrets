@@ -1,7 +1,10 @@
 # Edit History
-*Last Updated: 2026-08-12 14:34:10 IST*
+*Last Updated: 2026-08-12 15:17:13 IST*
 
 ### 2026-08-12
+
+#### 15:17:13 IST - T2, T3: Move sidebar ownership and integrate updater plugin settings
+- Created `memory-bank/edits/2026-08-12/151713-t2-t3-task-split-updater-settings.md` - Recorded the T3 split and updater settings integration.
 
 #### 14:34:10 IST - T1: Record sidebar UI merge and main publication
 - Created `memory-bank/edits/2026-08-12/143410-t1-sidebar-ui-main-publication.md` - Recorded the merged and pushed main-branch result.
