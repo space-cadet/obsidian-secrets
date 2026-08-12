@@ -1,11 +1,12 @@
 # System Patterns
-*Last Updated: 2026-08-12 12:18:38 IST*
+*Last Updated: 2026-08-12 14:09:25 IST*
 
 ## Core Architecture
 1. A pure format/parser layer identifies complete encrypted blocks and rejects ambiguous or malformed markers.
 2. A pure crypto layer performs password-based key derivation, authenticated encryption, decryption, and format validation.
 3. A session-key layer owns non-extractable in-memory keys, expiry, explicit lock, vault scoping, and unload cleanup.
-4. A thin Obsidian adapter performs editor transactions and Reading View rendering.
+4. A thin Obsidian adapter owns explicitly opened sidebar UI, editor transactions, and Reading View rendering.
+5. Sidebar tabs are presentation boundaries; they do not own passwords, plaintext, ciphertext, or session keys.
 
 ## Security Invariants
 - The on-disk representation of a valid encrypted block contains no plaintext secret.

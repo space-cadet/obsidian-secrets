@@ -1,5 +1,5 @@
 # Error Log
-*Last Updated: 2026-08-12 13:48:25 IST*
+*Last Updated: 2026-08-12 14:09:25 IST*
 
 ## 2026-08-12
 
@@ -17,3 +17,9 @@
 - **Cause**: Dependency downloads require network access, while pnpm 11 also requires an explicit workspace build allowlist for esbuild.
 - **Resolution**: Generated `pnpm-lock.yaml`, added `pnpm-workspace.yaml` with `allowBuilds.esbuild: true`, and verified the checks with `CI=true pnpm` commands.
 - **Result**: pnpm tests, plugin bundle, and archive build pass locally; GitHub Actions uses the same frozen-lockfile and CI path.
+
+### PKG-SETUP-2: Corepack could not download the pinned pnpm runtime during UI verification
+- **Task**: T1
+- **Symptom**: `pnpm run build` could not create Corepack's cache under the restricted home directory; using a temporary Corepack directory then failed DNS resolution for `registry.npmjs.org`.
+- **Resolution**: Used the already installed local `tsc` and `esbuild` binaries, then ran the existing Node test suite and archive script directly.
+- **Result**: TypeScript compilation, plugin bundling, 13 existing tests, and archive creation passed; the pnpm wrapper remains network-blocked in this environment.
