@@ -16,4 +16,4 @@ source_commit: aadd79870c235862c0cd6ab4868fdb5b5651e7a2
 - `pnpm run build` passed.
 - `pnpm test` passed with 15 tests.
 - `pnpm run build:plugin`, `pnpm run archive`, and `git diff --check` passed.
-- Commit and push are the remaining publication steps for this edit.
+- Commit `bf571eb` was created and pushed to `origin/main`.
