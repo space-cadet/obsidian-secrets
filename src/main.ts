@@ -126,6 +126,14 @@ export default class ObsidianSecretsPlugin extends Plugin {
       () => this.encryptCurrentSelection(),
       () => this.decryptCurrentSelection(),
     ));
+
+    // Listen for vault salt regeneration from sidebar
+    document.addEventListener("obsidian-secrets:regenerate-salt", async (event: Event) => {
+      const detail = (event as CustomEvent).detail as { newSalt: string };
+      this.settings = { ...this.settings, vaultSalt: detail.newSalt };
+      await this.saveData(this.settings);
+      new Notice("Vault salt regenerated. Use your NEW password to unlock.");
+    });
     this.addRibbonIcon("lock-keyhole", "Open Obsidian Secrets", () => this.activateSidebar());
     this.addSettingTab(new SecretsSettingTab(this.app, this, {
       getSettings: () => this.settings,
@@ -330,6 +338,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
   }
 
   async onunload(): Promise<void> {
+    document.removeEventListener("obsidian-secrets:regenerate-salt", () => {});
     this.historyService.record("plugin_unloaded");
     await this.historyService.save();
     this.sessionKeyService.lock();

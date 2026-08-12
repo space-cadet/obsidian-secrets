@@ -204,6 +204,28 @@
   margin-top: 14px;
 }
 
+.obsidian-secrets-danger-button {
+  padding: 9px 12px;
+  border: 1px solid #ef4444;
+  border-radius: 6px;
+  background: color-mix(in srgb, #ef4444 12%, transparent);
+  color: #ef4444;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.obsidian-secrets-info-box {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid var(--obsidian-secrets-border);
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--obsidian-secrets-accent) 8%, transparent);
+  color: var(--text-normal, #e5e7eb);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+}
+
 .obsidian-secrets-setting-row + .obsidian-secrets-setting-row {
   margin-top: 18px;
   padding-top: 18px;

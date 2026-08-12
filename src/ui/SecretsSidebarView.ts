@@ -35,9 +35,9 @@ function paragraph(text: string, className = ""): HTMLParagraphElement {
   return node;
 }
 
-function button(text: string, className = ""): HTMLButtonElement {
+function button(text: string, className = "", type: "button" | "submit" = "button"): HTMLButtonElement {
   const node = element("button", className);
-  node.type = "button";
+  node.type = type;
   node.textContent = text;
   return node;
 }
@@ -182,7 +182,7 @@ export class SecretsSidebarView extends ItemView {
     password.placeholder = "Enter your vault password";
     password.autocomplete = "current-password";
     password.setAttribute("aria-label", "Unlock vault");
-    const unlock = button("Unlock", "obsidian-secrets-primary-button");
+    const unlock = button("Unlock", "obsidian-secrets-primary-button", "submit");
     form.append(label, password, unlock);
     form.addEventListener("submit", async (event) => {
       event.preventDefault();
@@ -269,6 +269,37 @@ export class SecretsSidebarView extends ItemView {
       : "Auto-lock is disabled.";
     policy.append(policyHeader, paragraph(`One vault password per active session. ${timeoutText}`));
     panel.append(policy);
+
+    const dangerZone = element("section", "obsidian-secrets-card");
+    const dangerHeader = element("div", "obsidian-secrets-card-header");
+    dangerHeader.append(heading("Danger zone", 3));
+    dangerZone.append(dangerHeader);
+    dangerZone.append(paragraph("Change your vault password by generating a new vault salt. WARNING: All existing encrypted blocks will become undecryptable. Only proceed if you have no encrypted blocks or have exported them."));
+    const resetBtn = button("Change vault password", "obsidian-secrets-danger-button");
+    resetBtn.addEventListener("click", async () => {
+      const confirmed = confirm("WARNING: This will change your vault password and INVALIDATE all existing encrypted blocks. They will become permanently undecryptable. Are you sure?");
+      if (!confirmed) return;
+      const doubleCheck = confirm("Double-check: ALL encrypted blocks in your vault will be LOST FOREVER. Proceed?");
+      if (!doubleCheck) return;
+
+      this.sessionKeyService.lock();
+
+      // Generate new salt
+      const { encodeBase64Url, VAULT_SALT_BYTES } = await import("../format.js");
+      const newSalt = encodeBase64Url(crypto.getRandomValues(new Uint8Array(VAULT_SALT_BYTES)));
+
+      // Save to settings via callback (we need the plugin to handle this)
+      const event = new CustomEvent("obsidian-secrets:regenerate-salt", {
+        detail: { newSalt },
+      });
+      document.dispatchEvent(event);
+
+      this.getHistoryService?.().record("vault_locked", "password changed");
+      new Notice("Vault password changed. Old encrypted blocks are now undecryptable. Unlock with your NEW password.");
+      this.render();
+    });
+    dangerZone.append(resetBtn);
+    panel.append(dangerZone);
   }
 
   private renderBlocks(panel: HTMLElement): void {
