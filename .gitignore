@@ -1,5 +1,7 @@
 node_modules/
+.pnpm-store/
 dist/
+main.js
 coverage/
 .DS_Store
 *.log

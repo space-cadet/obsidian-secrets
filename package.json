@@ -1,0 +1,17 @@
+{
+  "name": "obsidian-secrets",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.5.0",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "pnpm run build && node --test test/*.test.mjs",
+    "build:plugin": "node scripts/build-plugin.mjs",
+    "archive": "node scripts/build-archive.mjs",
+    "benchmark:kdf": "node tools/benchmark-kdf.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0",
+    "typescript": "^5.8.0"
+  }
+}

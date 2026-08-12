@@ -15,3 +15,27 @@ This repository is currently in the design and validation phase. The first miles
 The project is not yet ready for production secrets. The design must be implemented, tested on desktop and Android, and independently reviewed before use with important credentials.
 
 Project planning records are in [`memory-bank/`](memory-bank/README.md).
+
+## Pure-layer prototype
+
+The current prototype is intentionally independent of Obsidian UI:
+
+- `src/format.ts` validates and serializes the canonical `v1` marker.
+- `src/crypto.ts` derives a vault master key, derives a per-block key, and performs AES-256-GCM encryption/decryption through Web Crypto.
+- `src/updater/PluginUpdater.ts` provides stable/dev release checks, direct-asset staging, manifest validation, transactional installation, and rollback without touching secret data.
+- `test/pure-layer.test.mjs` covers round trips, Unicode, malformed input, tampering, wrong passwords, and unsafe KDF settings.
+- `test/updater.test.mjs` covers stable/dev detection, commit-aware rolling releases, asset validation, download isolation, and rollback after partial writes.
+
+Run the local checks with:
+
+```sh
+pnpm install
+pnpm test
+pnpm run benchmark:kdf
+```
+
+For the Android timing gate, open [`tools/kdf-benchmark.html`](tools/kdf-benchmark.html) on the representative phone. If the file URL is blocked by the browser, serve the repository locally and open `/tools/kdf-benchmark.html` over localhost or HTTPS. Record the phone model, Android version, browser version, and the measured results before fixing the final iteration count.
+
+## Releases
+
+[`build-release.yml`](.github/workflows/build-release.yml) uses pnpm and runs tests, bundles the plugin, creates the archive, and verifies the commit hash. Pushes to `main` publish or update the rolling prerelease tagged `dev`; version tags such as `v0.1.0` publish stable releases. Each release includes the direct updater assets, the plugin ZIP, and `CHECKSUMS.txt`.

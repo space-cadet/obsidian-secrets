@@ -1,0 +1,10 @@
+{
+  "id": "obsidian-secrets",
+  "name": "Obsidian Secrets",
+  "version": "0.1.0",
+  "minAppVersion": "1.5.0",
+  "description": "Safe inline encryption for Obsidian notes.",
+  "author": "Deepak",
+  "authorUrl": "",
+  "isDesktopOnly": false
+}

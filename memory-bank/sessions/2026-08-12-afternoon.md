@@ -5,7 +5,7 @@ source_commit: 87c9f96ed0c476f6a7d94036a5342a9feb4e2b78
 
 # Session 2026-08-12 - Afternoon
 *Created: 2026-08-12 12:18:38 IST*
-*Last Updated: 2026-08-12 12:28:43 IST*
+*Last Updated: 2026-08-12 13:48:25 IST*
 
 ## Focus Task
 T1: Safe inline-encryption design and validation.
@@ -32,3 +32,17 @@ Existing Obsidian secret plugins were reviewed before starting this project. The
 
 ## Session Notes
 The first milestone is deliberately inline-only. No plugin implementation is being generated in this setup step. The mb-core database bootstrap issue is recorded in `memory-bank/errorLog.md`; it does not invalidate the Markdown records. The repository is public at `https://github.com/space-cadet/obsidian-secrets`.
+
+## Session Closeout
+
+### Completed Work
+- Implemented and tested the pure versioned inline-encryption format and Web Crypto layer.
+- Implemented the host-injected stable/dev updater with direct asset validation, staged downloads, transactional installation, and rollback.
+- Added the minimal installable plugin shell, manifest, build metadata, pnpm package setup, archive generator, and SHA-256 checksum manifest.
+- Added the GitHub Actions workflow for tested rolling `dev` releases from `main` and stable releases from `v*` tags.
+- Verified `pnpm test`, plugin bundling, archive creation, workflow YAML parsing, and `git diff --check`.
+
+### Deferred Work
+- Run the KDF benchmark on the OnePlus Nord 4.
+- Verify the first remote `dev` release and direct GitHub assets after push.
+- Build the encryption UI, session-key lifecycle, updater settings, confirmation/reload flow, and Android acceptance coverage.
