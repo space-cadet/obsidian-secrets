@@ -1,1 +1,205 @@
-/* Reserved for the Reading View lock marker and reveal UI. */
+.obsidian-secrets-view {
+  --obsidian-secrets-accent: #9b6cff;
+  --obsidian-secrets-border: var(--background-modifier-border, #34363b);
+  --obsidian-secrets-muted: var(--text-muted, #9a9da5);
+  padding: 0 14px 18px;
+  color: var(--text-normal, #e5e7eb);
+  overflow-y: auto;
+}
+
+.obsidian-secrets-header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 16px 0 0;
+  background: var(--background-primary, #1e1e1e);
+}
+
+.obsidian-secrets-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 16px;
+  font-weight: 650;
+}
+
+.obsidian-secrets-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #e3a84f;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #e3a84f 18%, transparent);
+}
+
+.obsidian-secrets-tabs {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 2px;
+  margin-top: 16px;
+  border-bottom: 1px solid var(--obsidian-secrets-border);
+}
+
+.obsidian-secrets-tab {
+  padding: 8px 3px 10px;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  background: transparent;
+  color: var(--obsidian-secrets-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+
+.obsidian-secrets-tab:hover,
+.obsidian-secrets-tab.is-active {
+  color: var(--text-normal, #e5e7eb);
+}
+
+.obsidian-secrets-tab.is-active {
+  border-bottom-color: var(--obsidian-secrets-accent);
+}
+
+.obsidian-secrets-panel {
+  display: grid;
+  gap: 12px;
+  padding-top: 14px;
+}
+
+.obsidian-secrets-card {
+  padding: 16px;
+  border: 1px solid var(--obsidian-secrets-border);
+  border-radius: 9px;
+  background: var(--background-secondary, #25262a);
+}
+
+.obsidian-secrets-lock-card {
+  text-align: center;
+}
+
+.obsidian-secrets-lock-card h2 {
+  margin: 10px 0 6px;
+  font-size: 20px;
+}
+
+.obsidian-secrets-lock-icon {
+  display: grid;
+  place-items: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--obsidian-secrets-accent) 16%, transparent);
+  color: var(--obsidian-secrets-accent);
+  font-size: 10px;
+  font-weight: 750;
+  letter-spacing: 0.08em;
+}
+
+.obsidian-secrets-card h3,
+.obsidian-secrets-card h2 {
+  margin: 0;
+}
+
+.obsidian-secrets-card p {
+  margin: 8px 0 0;
+  color: var(--obsidian-secrets-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.obsidian-secrets-unlock-form {
+  display: grid;
+  gap: 7px;
+  margin-top: 18px;
+  text-align: left;
+}
+
+.obsidian-secrets-unlock-form label {
+  color: var(--text-normal, #e5e7eb);
+  font-size: 12px;
+}
+
+.obsidian-secrets-unlock-form input {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 9px 10px;
+  border: 1px solid var(--obsidian-secrets-border);
+  border-radius: 6px;
+  background: var(--background-primary, #1e1e1e);
+  color: var(--text-normal, #e5e7eb);
+}
+
+.obsidian-secrets-primary-button,
+.obsidian-secrets-secondary-button {
+  padding: 9px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.obsidian-secrets-primary-button {
+  border: 0;
+  background: var(--obsidian-secrets-accent);
+  color: #fff;
+  font-weight: 650;
+}
+
+.obsidian-secrets-secondary-button {
+  border: 1px solid var(--obsidian-secrets-border);
+  background: transparent;
+  color: var(--text-normal, #e5e7eb);
+}
+
+.obsidian-secrets-secondary-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.obsidian-secrets-helper {
+  font-size: 11px !important;
+}
+
+.obsidian-secrets-card-header,
+.obsidian-secrets-setting-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.obsidian-secrets-pill {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--obsidian-secrets-accent) 45%, var(--obsidian-secrets-border));
+  border-radius: 999px;
+  color: var(--obsidian-secrets-accent);
+  font-size: 10px;
+  line-height: 1.2;
+}
+
+.obsidian-secrets-empty-state {
+  margin-top: 14px;
+  padding: 18px 12px;
+  border: 1px dashed var(--obsidian-secrets-border);
+  border-radius: 6px;
+  color: var(--obsidian-secrets-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.obsidian-secrets-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.obsidian-secrets-setting-row + .obsidian-secrets-setting-row {
+  margin-top: 18px;
+  padding-top: 18px;
+  border-top: 1px solid var(--obsidian-secrets-border);
+}
+
+.obsidian-secrets-setting-row strong {
+  font-size: 13px;
+}

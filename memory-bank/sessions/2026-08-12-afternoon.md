@@ -5,7 +5,7 @@ source_commit: 87c9f96ed0c476f6a7d94036a5342a9feb4e2b78
 
 # Session 2026-08-12 - Afternoon
 *Created: 2026-08-12 12:18:38 IST*
-*Last Updated: 2026-08-12 13:48:25 IST*
+*Last Updated: 2026-08-12 14:09:25 IST*
 
 ## Focus Task
 T1: Safe inline-encryption design and validation.
@@ -46,3 +46,11 @@ The first milestone is deliberately inline-only. No plugin implementation is bei
 - Run the KDF benchmark on the OnePlus Nord 4.
 - Verify the first remote `dev` release and direct GitHub assets after push.
 - Build the encryption UI, session-key lifecycle, updater settings, confirmation/reload flow, and Android acceptance coverage.
+
+## UI Implementation Follow-up
+
+At 14:09:25 IST, the first Obsidian UI slice was implemented and recorded. The minimal plugin shell now registers an explicitly opened right-sidebar `ItemView`, a ribbon entry point, and an `Open Obsidian Secrets sidebar` command. The view has Vault, Blocks, History, and Settings tabs.
+
+The current UI is presentation-only: the Vault password field is cleared without being accepted or stored, import/export controls are disabled, and planned settings/history states are labeled honestly. Session-key, editor, Reading View, export/import, history, and updater settings integrations remain separate follow-up work.
+
+The design reference is stored at `memory-bank/assets/screenshots/obsidian-secrets-sidebar-v1.png` and documented in `memory-bank/implementation-details/sidebar-ui.md`.

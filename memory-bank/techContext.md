@@ -1,5 +1,5 @@
 # Technical Context
-*Last Updated: 2026-08-12 12:18:38 IST*
+*Last Updated: 2026-08-12 14:09:25 IST*
 
 ## Initial Technical Direction
 - TypeScript targeting the Obsidian plugin API.
@@ -7,6 +7,8 @@
 - No custom cryptographic primitive implementation.
 - No network calls in the plugin runtime.
 - No plaintext persistence in `loadData`, settings, local storage, or vault files.
+- The first UI slice uses the Obsidian `ItemView` API and native DOM construction; it is registered but never auto-opened.
+- UI placeholders must be explicit about unavailable functionality and must clear password input without retaining it.
 
 ## Format Questions To Resolve Before Coding
 - Exact versioned envelope fields and canonical serialization.
