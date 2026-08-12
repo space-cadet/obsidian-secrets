@@ -130,6 +130,7 @@ export class ItemView {
   export interface ButtonComponent {
     setButtonText(text: string): this;
     setCta(): this;
+    setWarning?(): this;
     setDisabled(disabled: boolean): this;
     onClick(callback: () => void | Promise<void>): this;
   }

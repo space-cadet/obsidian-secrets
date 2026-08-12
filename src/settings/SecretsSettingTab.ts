@@ -27,6 +27,58 @@ export class SecretsSettingTab extends PluginSettingTab {
     description.textContent = "Startup checks report updates; manual checks require confirmation before installation and reload.";
     containerEl.append(description);
 
+    // Vault Configuration
+    const vaultHeading = document.createElement("h3");
+    vaultHeading.textContent = "Vault";
+    containerEl.append(vaultHeading);
+
+    const vaultInfo = document.createElement("p");
+    vaultInfo.innerHTML = "<strong>How it works:</strong> Your vault password is never stored. Only a random salt is saved in Obsidian's settings. When you unlock the vault, the master key is derived from your password + this salt. If you forget your password, your encrypted blocks cannot be recovered.";
+    containerEl.append(vaultInfo);
+
+    const vaultSalt = this.options.getSettings().vaultSalt;
+    const saltStatus = document.createElement("p");
+    saltStatus.innerHTML = `<strong>Vault salt:</strong> ${vaultSalt ? "Configured (" + vaultSalt.slice(0, 16) + "…)" : "Not configured"}`;
+    containerEl.append(saltStatus);
+
+    new Setting(containerEl)
+      .setName("Session timeout")
+      .setDesc("Minutes of inactivity before auto-locking the vault. 0 disables auto-lock.")
+      .addDropdown((dropdown) => {
+        [5, 15, 30, 60, 0].forEach((mins) => {
+          dropdown.addOption(String(mins), mins === 0 ? "Never" : `${mins} minutes`);
+        });
+        dropdown
+          .setValue(String(this.options.getSettings().sessionTimeoutMinutes ?? 15))
+          .onChange(async (value) => {
+            const settings = this.options.getSettings();
+            await this.options.saveSettings({
+              ...settings,
+              sessionTimeoutMinutes: parseInt(value, 10),
+            });
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Regenerate vault salt")
+      .setDesc("WARNING: This will invalidate all existing encrypted blocks. Only use if you've never encrypted anything or have backups.")
+      .addButton((button) => {
+        button
+          .setButtonText("Regenerate (DANGER)")
+          .onClick(async () => {
+            const confirmed = confirm("This will invalidate ALL existing encrypted blocks. Are you sure?");
+            if (!confirmed) return;
+            const { encodeBase64Url, VAULT_SALT_BYTES } = await import("../format.js");
+            const newSalt = encodeBase64Url(crypto.getRandomValues(new Uint8Array(VAULT_SALT_BYTES)));
+            const settings = this.options.getSettings();
+            await this.options.saveSettings({
+              ...settings,
+              vaultSalt: newSalt,
+            });
+            saltStatus.innerHTML = `<strong>Vault salt:</strong> Configured (${newSalt.slice(0, 16)}…)`;
+          });
+      });
+
     new Setting(containerEl)
       .setName("Update channel")
       .setDesc("Choose stable releases or the rolling development release.")

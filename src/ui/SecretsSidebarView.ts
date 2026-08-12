@@ -164,12 +164,16 @@ export class SecretsSidebarView extends ItemView {
     lockCard.append(lockIcon, heading("Vault locked"));
     lockCard.append(paragraph("The encryption session is not active."));
 
+    const info = element("div", "obsidian-secrets-info-box");
+    info.innerHTML = "<strong>First time?</strong> Enter any password you choose — it becomes your vault password. There's no separate 'set password' step. <strong>Important:</strong> If you forget this password, your encrypted blocks cannot be recovered.";
+    lockCard.append(info);
+
     const form = element("form", "obsidian-secrets-unlock-form");
     const label = element("label");
     label.textContent = "Unlock vault";
     const password = element("input");
     password.type = "password";
-    password.placeholder = "Enter vault password";
+    password.placeholder = "Enter your vault password";
     password.autocomplete = "current-password";
     password.setAttribute("aria-label", "Unlock vault");
     const unlock = button("Unlock", "obsidian-secrets-primary-button");
