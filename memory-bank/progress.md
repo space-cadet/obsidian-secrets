@@ -1,5 +1,5 @@
 # Progress
-*Last Updated: 2026-08-12 14:09:25 IST*
+*Last Updated: 2026-08-12 14:30:19 IST*
 
 ## Overall Status
 Foundation and validation phase: 50% complete.
@@ -13,6 +13,7 @@ Foundation and validation phase: 50% complete.
 - Implemented the stable/dev updater core with transactional rollback tests.
 - Added the minimal installable plugin shell and pnpm-based GitHub Actions release workflow.
 - Added the first explicitly opened sidebar UI shell with Vault, Blocks, History, and Settings tabs.
+- Recorded the user-confirmed sidebar screenshot and prepared the feature branch for main-branch publication.
 
 ## In Progress
 - T1: safe inline-encryption design and validation.

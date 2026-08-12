@@ -1,5 +1,5 @@
 # Sidebar UI Implementation
-*Last Updated: 2026-08-12 14:09:25 IST*
+*Last Updated: 2026-08-12 14:30:19 IST*
 
 ## Purpose
 Provide a small, extensible Obsidian sidebar for the encryption workflow while keeping all security-sensitive behavior behind explicit future integrations.
@@ -10,6 +10,7 @@ Provide a small, extensible Obsidian sidebar for the encryption workflow while k
 - The Vault tab starts locked and renders a password field, but the submit handler clears the field and reports that unlock is not connected. It never derives, stores, or logs a key.
 - Blocks, History, and Settings are honest empty/planned states. Disabled import/export controls are present only as layout affordances.
 - `styles.css` provides the dark, compact sidebar styling shown in the mockup.
+- The user confirmed the current Vault-tab composition: title and locked status, four tabs, large locked-state card, password field, explicit Unlock action, memory-only key note, and planned key-policy card.
 
 ## Tab Responsibilities
 ### Vault
@@ -33,7 +34,9 @@ Host encryption-key choices, session expiry, export/import policy, and updater c
 ## Reference Artifact
 ![Proposed sidebar UI](../assets/screenshots/obsidian-secrets-sidebar-v1.png)
 
-The screenshot is a design reference, not evidence that the encryption workflow is implemented.
+![User-confirmed sidebar UI](../assets/screenshots/obsidian-secrets-sidebar-user-confirmed.jpg)
+
+The generated image is a design reference; the user-provided screenshot is the current visual acceptance reference. Neither image is evidence that the encryption workflow is implemented.
 
 ## Next Integration Steps
 1. Add session-key lifecycle state and connect the Vault tab to it.
