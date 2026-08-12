@@ -6,6 +6,7 @@ export class SessionKeyService {
   private masterKey: CryptoKey | null = null;
   private timeoutId: ReturnType<typeof setTimeout> | null = null;
   private lockCallbacks: Array<() => void> = [];
+  private autoLockCallback?: () => void;
   private timeoutMinutes = 15;
 
   /**
@@ -86,6 +87,16 @@ export class SessionKeyService {
   }
 
   /**
+   * Set a callback that fires specifically on auto-lock (timeout-based).
+   */
+  onAutoLock(callback: () => void): () => void {
+    this.autoLockCallback = callback;
+    return () => {
+      this.autoLockCallback = undefined;
+    };
+  }
+
+  /**
    * Register a callback that fires when the vault locks (explicit, timeout, or via clear).
    * Returns an unsubscribe function.
    */
@@ -103,7 +114,10 @@ export class SessionKeyService {
       this.timeoutId = null;
     }
     if (this.masterKey !== null && this.timeoutMinutes > 0) {
-      this.timeoutId = setTimeout(() => this.lock(), this.timeoutMinutes * 60 * 1000);
+      this.timeoutId = setTimeout(() => {
+        this.autoLockCallback?.();
+        this.lock();
+      }, this.timeoutMinutes * 60 * 1000);
     }
   }
 }

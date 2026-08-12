@@ -8,6 +8,14 @@ import { PluginUpdater } from "./updater/PluginUpdater.js";
 import { UpdateAvailableModal } from "./updater/UpdateAvailableModal.js";
 import { encodeBase64Url, VAULT_SALT_BYTES, decodeBase64Url } from "./format.js";
 import { encryptBlockWithMasterKey, decryptBlockWithMasterKey, CryptoError } from "./crypto.js";
+import { SecurityHistoryService, formatSecurityEvent } from "./history/SecurityHistoryService.js";
+import {
+  extractEncryptedBlocks,
+  exportBlocksToBundle,
+  serializeExportBundle,
+  parseExportBundle,
+  generateImportContent,
+} from "./export/ExportImportService.js";
 
 const REPOSITORY = "space-cadet/obsidian-secrets";
 
@@ -69,9 +77,11 @@ export default class ObsidianSecretsPlugin extends Plugin {
   private settings: PluginSettings = { ...DEFAULT_SETTINGS };
   private updater!: PluginUpdater;
   private sessionKeyService = new SessionKeyService();
+  private historyService = new SecurityHistoryService();
 
   async onload(): Promise<void> {
     this.settings = normalizePluginSettings(await this.loadData());
+    this.historyService.record("plugin_loaded");
 
     // Ensure vault salt exists for session-key derivation
     if (!this.settings.vaultSalt) {
@@ -80,6 +90,10 @@ export default class ObsidianSecretsPlugin extends Plugin {
     }
 
     this.sessionKeyService.setTimeout(this.settings.sessionTimeoutMinutes ?? 15);
+    this.sessionKeyService.onAutoLock(() => {
+      this.historyService.record("vault_auto_locked");
+      new Notice("Vault auto-locked due to inactivity.");
+    });
 
     this.updater = new PluginUpdater(
       {
@@ -95,6 +109,12 @@ export default class ObsidianSecretsPlugin extends Plugin {
       () => this.settings,
       () => this.openPluginSettings(),
       () => this.checkForUpdates(true),
+      () => this.historyService,
+      (noteContent: string) => extractEncryptedBlocks(noteContent),
+      async (notePath: string, content: string) => {
+        await this.app.vault.adapter.write(notePath, content);
+      },
+      async (notePath: string) => this.app.vault.adapter.read(notePath),
     ));
     this.addRibbonIcon("lock-keyhole", "Open Obsidian Secrets", () => this.activateSidebar());
     this.addSettingTab(new SecretsSettingTab(this.app, this, {
@@ -120,6 +140,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
       name: "Lock Obsidian Secrets vault",
       callback: () => {
         this.sessionKeyService.lock();
+        this.historyService.record("vault_locked");
         new Notice("Obsidian Secrets vault locked.");
       },
     });
@@ -137,6 +158,22 @@ export default class ObsidianSecretsPlugin extends Plugin {
       name: "Decrypt selection",
       editorCallback: (editor: Editor) => {
         void this.decryptSelection(editor);
+      },
+    });
+
+    this.addCommand({
+      id: "export-encrypted-blocks",
+      name: "Export encrypted blocks from current note",
+      editorCallback: (editor: Editor) => {
+        void this.exportBlocksFromCurrentNote(editor);
+      },
+    });
+
+    this.addCommand({
+      id: "import-encrypted-blocks",
+      name: "Import encrypted blocks to current note",
+      editorCallback: (editor: Editor) => {
+        void this.importBlocksToCurrentNote(editor);
       },
     });
 
@@ -170,6 +207,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
     try {
       const marker = await encryptBlockWithMasterKey(selection, masterKey, { vaultSalt });
       editor.replaceSelection(marker);
+      this.historyService.record("block_encrypted");
       new Notice("Selection encrypted.");
     } catch (error) {
       new Notice(error instanceof CryptoError ? error.message : "Encryption failed.");
@@ -196,13 +234,71 @@ export default class ObsidianSecretsPlugin extends Plugin {
 
     try {
       const plaintext = await decryptBlockWithMasterKey(selection, masterKey);
+      this.historyService.record("block_decrypted");
       new DecryptRevealModal(this.app, plaintext).open();
     } catch (error) {
       new Notice(error instanceof CryptoError ? error.message : "Decryption failed.");
     }
   }
 
+  private async exportBlocksFromCurrentNote(editor: Editor): Promise<void> {
+    const content = editor.getValue();
+    const blocks = extractEncryptedBlocks(content);
+
+    if (blocks.length === 0) {
+      new Notice("No encrypted blocks found in current note.");
+      return;
+    }
+
+    const bundle = exportBlocksToBundle(blocks, "current-note");
+    const json = serializeExportBundle(bundle);
+
+    // Create a download via data URL
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `obsidian-secrets-export-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    this.historyService.record("blocks_exported", `count: ${blocks.length}`);
+    new Notice(`Exported ${blocks.length} encrypted block(s).`);
+  }
+
+  private async importBlocksToCurrentNote(editor: Editor): Promise<void> {
+    // Create a file input to read the import file
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+
+    input.addEventListener("change", async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+
+      try {
+        const text = await file.text();
+        const bundle = parseExportBundle(text);
+        const importContent = generateImportContent(bundle);
+
+        const currentContent = editor.getValue();
+        const separator = currentContent.length > 0 && !currentContent.endsWith("\n") ? "\n\n" : "";
+        editor.setValue(currentContent + separator + importContent + "\n");
+
+        this.historyService.record("blocks_imported", `count: ${bundle.blocks.length}`);
+        new Notice(`Imported ${bundle.blocks.length} encrypted block(s).`);
+      } catch (error) {
+        new Notice(error instanceof Error ? `Import failed: ${error.message}` : "Import failed.");
+      }
+    });
+
+    input.click();
+  }
+
   onunload(): void {
+    this.historyService.record("plugin_unloaded");
     this.sessionKeyService.lock();
   }
 

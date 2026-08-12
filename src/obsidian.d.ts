@@ -99,7 +99,8 @@ declare module "obsidian" {
     addSettingTab(settingTab: PluginSettingTab): void;
   }
 
-  export class ItemView {
+export class ItemView {
+    app: App;
     constructor(leaf: WorkspaceLeaf);
     contentEl: HTMLElement;
     onOpen(): Promise<void>;

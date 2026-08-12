@@ -1,7 +1,10 @@
 import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
+import type { Envelope } from "../format.js";
 import { decodeBase64Url, MIN_ITERATIONS } from "../format.js";
 import type { PluginSettings } from "../settings.js";
 import type { SessionKeyService } from "../session/SessionKeyService.js";
+import type { SecurityHistoryService } from "../history/SecurityHistoryService.js";
+import { extractEncryptedBlocks, exportBlocksToBundle, serializeExportBundle } from "../export/ExportImportService.js";
 
 export const VIEW_TYPE_SECRETS = "obsidian-secrets-sidebar";
 
@@ -51,6 +54,10 @@ export class SecretsSidebarView extends ItemView {
   private readonly getPluginSettings?: () => PluginSettings;
   private readonly openPluginSettings?: () => void;
   private readonly checkForUpdates?: () => Promise<void>;
+  private readonly getHistoryService?: () => SecurityHistoryService;
+  private readonly extractBlocks?: (content: string) => Array<{ marker: string; envelope: Envelope }>;
+  private readonly writeFile?: (path: string, content: string) => Promise<void>;
+  private readonly readFile?: (path: string) => Promise<string>;
   private lockUnsubscribe?: () => void;
 
   constructor(
@@ -59,12 +66,20 @@ export class SecretsSidebarView extends ItemView {
     getPluginSettings?: () => PluginSettings,
     openPluginSettings?: () => void,
     checkForUpdates?: () => Promise<void>,
+    getHistoryService?: () => SecurityHistoryService,
+    extractBlocks?: (content: string) => Array<{ marker: string; envelope: Envelope }>,
+    writeFile?: (path: string, content: string) => Promise<void>,
+    readFile?: (path: string) => Promise<string>,
   ) {
     super(leaf);
     this.sessionKeyService = sessionKeyService;
     this.getPluginSettings = getPluginSettings;
     this.openPluginSettings = openPluginSettings;
     this.checkForUpdates = checkForUpdates;
+    this.getHistoryService = getHistoryService;
+    this.extractBlocks = extractBlocks;
+    this.writeFile = writeFile;
+    this.readFile = readFile;
   }
 
   getViewType(): string {
@@ -98,6 +113,7 @@ export class SecretsSidebarView extends ItemView {
     const header = element("header", "obsidian-secrets-header");
     const title = element("div", "obsidian-secrets-title");
     title.textContent = "Obsidian Secrets";
+
     const status = element("span", isUnlocked ? "obsidian-secrets-status-dot unlocked" : "obsidian-secrets-status-dot");
     status.title = isUnlocked ? "Vault unlocked" : "Vault locked";
     status.setAttribute("aria-label", isUnlocked ? "Vault unlocked" : "Vault locked");
@@ -179,6 +195,7 @@ export class SecretsSidebarView extends ItemView {
         const iterations = settings?.sessionTimeoutMinutes ?? MIN_ITERATIONS;
         const success = await this.sessionKeyService.unlock(pwd, saltBytes, iterations);
         if (success) {
+          this.getHistoryService?.().record("vault_unlocked");
           new Notice("Vault unlocked.");
           this.render();
         } else {
@@ -209,6 +226,7 @@ export class SecretsSidebarView extends ItemView {
     const lockButton = button("Lock vault", "obsidian-secrets-primary-button");
     lockButton.addEventListener("click", () => {
       this.sessionKeyService.lock();
+      this.getHistoryService?.().record("vault_locked");
       new Notice("Vault locked.");
       this.render();
     });
@@ -229,31 +247,103 @@ export class SecretsSidebarView extends ItemView {
   private renderBlocks(panel: HTMLElement): void {
     const card = element("section", "obsidian-secrets-card");
     card.append(heading("Protected blocks"));
-    card.append(paragraph("Encrypted inline blocks will appear here after editor integration."));
-    const empty = element("div", "obsidian-secrets-empty-state");
-    empty.textContent = "No protected blocks indexed yet.";
-    card.append(empty);
+
+    // Get current note content and scan for blocks
+    const activeLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
+    const view = activeLeaf?.view;
+    const editor = (view as { editor?: { getValue: () => string } } | undefined)?.editor;
+    const content = editor?.getValue() ?? "";
+    const blocks = this.extractBlocks ? this.extractBlocks(content) : [];
+
+    if (blocks.length === 0) {
+      card.append(paragraph("No encrypted blocks found in the current note."));
+      const empty = element("div", "obsidian-secrets-empty-state");
+      empty.textContent = "Select text and use the 'Encrypt selection' command to create encrypted blocks.";
+      card.append(empty);
+    } else {
+      card.append(paragraph(`${blocks.length} encrypted block(s) in current note.`));
+      const list = element("ul", "obsidian-secrets-block-list");
+      for (let i = 0; i < blocks.length; i++) {
+        const li = element("li");
+        li.textContent = `Block ${i + 1}: ${blocks[i].marker.slice(0, 50)}…`;
+        list.appendChild(li);
+      }
+      card.append(list);
+    }
 
     const actions = element("div", "obsidian-secrets-actions");
-    const exportButton = button("Export", "obsidian-secrets-secondary-button");
-    const importButton = button("Import", "obsidian-secrets-secondary-button");
-    exportButton.disabled = true;
-    importButton.disabled = true;
-    exportButton.title = "Export will be available after block storage is implemented.";
-    importButton.title = "Import will be available after block storage is implemented.";
-    actions.append(exportButton, importButton);
-    card.append(actions, paragraph("Export and import will move ciphertext blocks only; plaintext and keys will never be written to an export file.", "obsidian-secrets-helper"));
+    const exportButton = button("Export blocks", "obsidian-secrets-secondary-button");
+    exportButton.addEventListener("click", () => {
+      void this.exportBlocksFromSidebar(content);
+    });
+    actions.append(exportButton);
+    card.append(actions, paragraph("Export will create a ciphertext-only JSON file. Keys and plaintext are never included.", "obsidian-secrets-helper"));
     panel.append(card);
+  }
+
+  private async exportBlocksFromSidebar(content: string): Promise<void> {
+    if (!this.extractBlocks) return;
+    const blocks = this.extractBlocks(content);
+    if (blocks.length === 0) {
+      new Notice("No encrypted blocks to export.");
+      return;
+    }
+    const bundle = exportBlocksToBundle(blocks, "sidebar-export");
+    const json = serializeExportBundle(bundle);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `obsidian-secrets-export-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    this.getHistoryService?.().record("blocks_exported", `count: ${blocks.length}`);
+    new Notice(`Exported ${blocks.length} encrypted block(s).`);
   }
 
   private renderHistory(panel: HTMLElement): void {
     const card = element("section", "obsidian-secrets-card");
-    const cardHeader = element("div", "obsidian-secrets-card-header");
-    cardHeader.append(heading("Security history"), plannedPill());
-    card.append(cardHeader, paragraph("No security events recorded yet."));
-    const empty = element("div", "obsidian-secrets-empty-state");
-    empty.textContent = "Lock, unlock, import, export, and update events will appear here.";
-    card.append(empty, paragraph("History will never contain passwords, plaintext, ciphertext, or key material.", "obsidian-secrets-helper"));
+    const history = this.getHistoryService?.();
+    const events = history?.getEvents(20) ?? [];
+
+    if (events.length === 0) {
+      card.append(heading("Security history"));
+      card.append(paragraph("No security events recorded yet."));
+      const empty = element("div", "obsidian-secrets-empty-state");
+      empty.textContent = "Lock, unlock, encrypt, decrypt, and export events will appear here.";
+      card.append(empty);
+    } else {
+      card.append(heading(`Security history (${history?.getEventCount() ?? 0} events)`));
+      const list = element("ul", "obsidian-secrets-history-list");
+      for (const event of events) {
+        const li = element("li");
+        const time = new Date(event.timestamp).toLocaleString("en-US", {
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+        const labels: Record<string, string> = {
+          vault_unlocked: "Vault unlocked",
+          vault_locked: "Vault locked",
+          vault_auto_locked: "Vault auto-locked",
+          block_encrypted: "Block encrypted",
+          block_decrypted: "Block decrypted",
+          blocks_exported: "Blocks exported",
+          blocks_imported: "Blocks imported",
+          plugin_loaded: "Plugin loaded",
+          plugin_unloaded: "Plugin unloaded",
+        };
+        const label = labels[event.type] ?? event.type;
+        li.textContent = event.details ? `${time} — ${label} (${event.details})` : `${time} — ${label}`;
+        list.appendChild(li);
+      }
+      card.append(list);
+    }
+
+    card.append(paragraph("History never contains passwords, plaintext, ciphertext, or key material.", "obsidian-secrets-helper"));
     panel.append(card);
   }
 
@@ -270,8 +360,8 @@ export class SecretsSidebarView extends ItemView {
     checkUpdates.addEventListener("click", () => void this.checkForUpdates?.());
     updaterActions.append(checkUpdates);
     card.append(updaterActions);
-    card.append(this.settingRow("Encryption keys", "Choose the vault key policy and session expiry.", "Planned"));
-    card.append(this.settingRow("Export and import", "Configure portable ciphertext block bundles.", "Planned"));
+    card.append(this.settingRow("Encryption keys", "Choose the vault key policy and session expiry.", "Configured"));
+    card.append(this.settingRow("Export and import", "Ciphertext-only block bundles.", "Active"));
     const settings = this.getPluginSettings?.();
     const channel = settings?.updateChannel === "dev" ? "Development" : "Stable";
     const startup = settings?.checkForUpdatesOnStartup ? "On" : "Off";
