@@ -90,6 +90,12 @@ declare module "obsidian" {
     checkCallback?: (checking: boolean) => boolean | void;
   }
 
+  export interface MarkdownPostProcessorContext {
+    sourcePath: string;
+  }
+
+  export type MarkdownPostProcessor = (element: HTMLElement, context: MarkdownPostProcessorContext) => void | Promise<void>;
+
   export class Plugin {
     app: App;
     manifest: { id: string; version: string };
@@ -98,6 +104,7 @@ declare module "obsidian" {
     addRibbonIcon(icon: string, title: string, callback: () => void | Promise<void>): HTMLElement;
     addCommand(command: Command): unknown;
     registerView(type: string, viewCreator: (leaf: WorkspaceLeaf) => ItemView): void;
+    registerMarkdownPostProcessor(processor: MarkdownPostProcessor): void;
     addSettingTab(settingTab: PluginSettingTab): void;
   }
 

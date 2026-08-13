@@ -269,6 +269,18 @@
   background: var(--background-secondary, #25262a);
 }
 
+.obsidian-secrets-inline-marker {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--obsidian-secrets-accent) 16%, transparent);
+  color: var(--obsidian-secrets-accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
 .obsidian-secrets-setting-row + .obsidian-secrets-setting-row {
   margin-top: 18px;
   padding-top: 18px;

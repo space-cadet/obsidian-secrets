@@ -134,6 +134,45 @@ export default class ObsidianSecretsPlugin extends Plugin {
       await this.saveData(this.settings);
       new Notice("Vault salt regenerated. Use your NEW password to unlock.");
     });
+    // Register markdown post-processor to show encrypted blocks in Live Preview/Reading mode
+    this.registerMarkdownPostProcessor((element) => {
+      const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT, null);
+      const comments: Comment[] = [];
+      let node: Node | null;
+      while ((node = walker.nextNode()) !== null) {
+        comments.push(node as Comment);
+      }
+      for (const comment of comments) {
+        const match = /^\s*obsidian-secrets:v1:([A-Za-z0-9_-]+)\s*$/.exec(comment.data);
+        if (!match) continue;
+        const marker = `<!-- obsidian-secrets:v1:${match[1]} -->`;
+        const placeholder = document.createElement("span");
+        placeholder.className = "obsidian-secrets-inline-marker";
+        placeholder.textContent = "🔒 Encrypted";
+        placeholder.title = "Click to decrypt";
+        placeholder.style.cursor = "pointer";
+        placeholder.addEventListener("click", async () => {
+          if (!this.sessionKeyService.isUnlocked()) {
+            new Notice("Vault is locked. Unlock it in the sidebar first.");
+            return;
+          }
+          const masterKey = this.sessionKeyService.getMasterKey();
+          if (!masterKey) {
+            new Notice("Vault is locked.");
+            return;
+          }
+          try {
+            const plaintext = await decryptBlockWithMasterKey(marker, masterKey);
+            this.historyService.record("block_decrypted", "inline click");
+            new DecryptRevealModal(this.app, plaintext).open();
+          } catch {
+            new Notice("Decryption failed. Wrong password or corrupted block.");
+          }
+        });
+        comment.parentNode?.replaceChild(placeholder, comment);
+      }
+    });
+
     this.addRibbonIcon("lock-keyhole", "Open Obsidian Secrets", () => this.activateSidebar());
     this.addSettingTab(new SecretsSettingTab(this.app, this, {
       getSettings: () => this.settings,
