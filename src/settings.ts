@@ -10,7 +10,7 @@ export type PluginSettings = {
 export const DEFAULT_SETTINGS: PluginSettings = {
   updateChannel: "stable",
   checkForUpdatesOnStartup: false,
-  sessionTimeoutMinutes: 15,
+  sessionTimeoutMinutes: 0,
 };
 
 export function normalizePluginSettings(value: unknown): PluginSettings {
