@@ -1,7 +1,12 @@
 #### 05:58 IST - T1: UX observations from real-world testing
-- **Created** `memory-bank/ux-observations-2026-08-13.md` documenting 7 issues found during testing session
+- **Created** edit chunks documenting 7 issues found during testing session
+- Content properly distributed to existing mb-core files (not orphan):
+  - `errorLog.md` — UI-1, UI-2, STATE-1, NET-1, UX-1, PERF-1
+  - `changelog.md` — fixes applied (unlock button, Live Preview, history persistence, auto-lock default, editor detection, sidebar decrypt, password change)
+  - `techContext.md` — format overhead analysis (180 bytes fixed overhead per block)
+  - `systemPatterns.md` — UX pattern mismatch (view-only vs edit-in-place architectures)
 - Key findings:
-  - Modal decryption wrong for short secrets (should be inline)
+  - Modal decryption wrong for short secrets (should be inline edit-in-place)
   - 200-char overhead for 10-char plaintext (format designed for large blocks)
   - Auto-lock 15 min default annoying (fixed to 0)
   - Unlock button type="button" failed on mobile (fixed to type="submit")

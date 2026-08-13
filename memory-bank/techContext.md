@@ -10,6 +10,24 @@
 - The first UI slice uses the Obsidian `ItemView` API and native DOM construction; it is registered but never auto-opened.
 - UI placeholders must be explicit about unavailable functionality and must clear password input without retaining it.
 
+## Format Observations From Testing (2026-08-13)
+
+### Overhead Analysis
+The current v1 format has ~180 bytes of fixed overhead per block regardless of plaintext size:
+- Envelope metadata (version, algorithm, KDF): ~40 chars
+- Vault salt: ~22 chars
+- Block salt: ~22 chars
+- IV: ~16 chars
+- Ciphertext + GCM tag: ~30 chars (for 10-char input, scales linearly)
+- Base64 encoding overhead
+- HTML comment wrapper: ~9 chars
+
+**Impact**: 
+- 10-char secret → ~200 char marker (95% overhead) — unacceptable for API keys
+- 1000-char paragraph → ~1200 char marker (~15% overhead) — acceptable
+
+**Conclusion**: Format is optimized for long-form encrypted notes, not short secrets. A different approach (single vault-wide salt, minimal per-block metadata) would be needed for secret storage use case.
+
 ## Format Questions To Resolve Before Coding
 - Exact versioned envelope fields and canonical serialization.
 - KDF choice and parameters that are practical on Android without weakening the threat model.

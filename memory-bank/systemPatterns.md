@@ -1,6 +1,23 @@
 # System Patterns
 *Last Updated: 2026-08-12 14:09:25 IST*
 
+## UX Pattern Mismatch Discovered (2026-08-13)
+
+### Current Model: "View-Only" Reveal
+- User clicks encrypted block → modal shows plaintext → user copies if needed → modal closes
+- Plaintext never enters the editor buffer
+- Safe for read-only scenarios, clunky for editing
+
+### Needed Model: "Edit-in-Place" Decrypt
+- User clicks encrypted block → marker replaced with plaintext in editor → user edits → explicit re-encrypt
+- Plaintext temporarily lives in editor buffer
+- Requires tracking which blocks are "decrypted in-place" and re-encrypting on lock/timeout
+
+### Architectural Implication
+The current "view-only" model assumes infrequent access and read-only workflows. For secret storage (API keys, passwords), the "edit-in-place" model is essential. These are fundamentally different architectures:
+- View-only: modal, copy-to-clipboard, no editor state mutation
+- Edit-in-place: editor transaction on decrypt, editor transaction on re-encrypt, state tracking for dirty blocks
+
 ## Core Architecture
 1. A pure format/parser layer identifies complete encrypted blocks and rejects ambiguous or malformed markers.
 2. A pure crypto layer performs password-based key derivation, authenticated encryption, decryption, and format validation.

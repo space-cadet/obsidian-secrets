@@ -1,6 +1,44 @@
 # Error Log
 *Last Updated: 2026-08-12 14:09:25 IST*
 
+## 2026-08-13
+
+### UX-1: Modal decryption wrong for inline secrets
+- **Task**: T1
+- **Symptom**: Clicking encrypted block shows modal popup. User expected inline decryption (replace marker with plaintext in note).
+- **Cause**: Architecture designed as "view-only", not "edit-in-place".
+- **Status**: Design mismatch. Requires significant refactor for inline decrypt/re-encrypt workflow.
+
+### PERF-1: Format overhead absurd for small secrets
+- **Task**: T1
+- **Symptom**: 10-character plaintext produces ~200-character encrypted marker.
+- **Cause**: Fixed per-block overhead (~180 bytes) for version, salts, IV, metadata. Format designed for large text blocks, not short secrets.
+- **Impact**: 90%+ overhead for API keys/passwords. Acceptable (~15%) for long paragraphs.
+- **Status**: Would require format redesign to fix without compromising self-describing security properties.
+
+### UI-1: Unlock button failed silently on mobile
+- **Task**: T1
+- **Symptom**: Tapping "Unlock" in sidebar did nothing.
+- **Cause**: Button created with `type="button"` inside `<form>` — doesn't submit on mobile.
+- **Fix**: Changed to `type="submit"`.
+
+### UI-2: Live Preview shows nothing for encrypted blocks
+- **Task**: T1
+- **Symptom**: HTML comment markers invisible in Live Preview mode.
+- **Fix**: Added `registerMarkdownPostProcessor` to replace comment nodes with visible `🔒 Encrypted` badges.
+
+### STATE-1: History lost on restart
+- **Task**: T1
+- **Symptom**: Security history disappeared after Obsidian restart.
+- **Cause**: History stored only in memory, never persisted.
+- **Fix**: Added persistence to disk at `.obsidian/plugins/obsidian-secrets/history.json`.
+
+### NET-1: Updater download failed intermittently on mobile
+- **Task**: T2
+- **Symptom**: "Update download failed" error.
+- **Cause**: Likely GitHub CDN/rate limiting/mobile network issues.
+- **Workaround**: Manual install from releases page works reliably.
+
 ## 2026-08-12
 
 ### MB-BOOT-1: Fresh database parser bootstrap
