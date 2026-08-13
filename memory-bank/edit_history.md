@@ -1,10 +1,15 @@
 # Edit History
 
-*Last Updated: 2026-08-13 09:33:12 IST*
+*Last Updated: 2026-08-13 09:48:32 IST*
 
 ---
 
 ## 2026-08-13
+
+#### 09:48:32 IST - T4: Implemented T4.7 quick-unlock modal and T4.8 editor context menu. Mobile workflow: select text → long-press → Encrypt → [unlock modal if needed] → encrypted. No view switching, selection preserved.
+- Modified `src/main.ts` - Modified src/main.ts
+- Modified `src/obsidian.d.ts` - Modified src/obsidian.d.ts
+- Modified `styles.css` - Modified styles.css
 
 #### 09:33:12 IST - T4: Mobile UX analysis: identified selection-loss bug on view switch. Plan: T4.7 quick-unlock modal (Option 1) + T4.8 context menu (Option 3). Created mobile-unlock-modal.md design doc.
 - Created `memory-bank/implementation-details/mobile-unlock-modal.md` - Created memory-bank/implementation-details/mobile-unlock-modal.md
