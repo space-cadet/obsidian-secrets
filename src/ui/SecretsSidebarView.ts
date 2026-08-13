@@ -1,4 +1,4 @@
-import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
+import { ItemView, Notice, WorkspaceLeaf, MarkdownView } from "obsidian";
 import type { Envelope } from "../format.js";
 import { decodeBase64Url, MIN_ITERATIONS } from "../format.js";
 import type { PluginSettings } from "../settings.js";
@@ -306,24 +306,41 @@ export class SecretsSidebarView extends ItemView {
     const card = element("section", "obsidian-secrets-card");
     card.append(heading("Protected blocks"));
 
-    // Get current note content and scan for blocks
-    const activeLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
-    const view = activeLeaf?.view;
-    const editor = (view as { editor?: { getValue: () => string } } | undefined)?.editor;
+    // Get active note content
+    const activeLeaf = this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
+    const view = activeLeaf?.view as { editor?: { getValue: () => string } } | undefined;
+    const editor = view?.editor;
     const content = editor?.getValue() ?? "";
     const blocks = this.extractBlocks ? this.extractBlocks(content) : [];
+    const isUnlocked = this.sessionKeyService.isUnlocked();
 
     if (blocks.length === 0) {
       card.append(paragraph("No encrypted blocks found in the current note."));
       const empty = element("div", "obsidian-secrets-empty-state");
-      empty.textContent = "Select text and use the 'Encrypt selection' command to create encrypted blocks.";
+      empty.textContent = isUnlocked
+        ? "Select text and tap 'Encrypt selection' to create encrypted blocks."
+        : "Unlock the vault to encrypt and decrypt blocks.";
       card.append(empty);
     } else {
       card.append(paragraph(`${blocks.length} encrypted block(s) in current note.`));
       const list = element("ul", "obsidian-secrets-block-list");
       for (let i = 0; i < blocks.length; i++) {
-        const li = element("li");
-        li.textContent = `Block ${i + 1}: ${blocks[i].marker.slice(0, 50)}…`;
+        const li = element("li", "obsidian-secrets-block-item");
+        const blockHeader = element("div", "obsidian-secrets-block-header");
+        blockHeader.textContent = `Block ${i + 1}`;
+        li.appendChild(blockHeader);
+
+        if (isUnlocked) {
+          const decryptBtn = button("Decrypt", "obsidian-secrets-secondary-button");
+          decryptBtn.addEventListener("click", () => {
+            void this.decryptBlock(blocks[i].marker);
+          });
+          li.appendChild(decryptBtn);
+        } else {
+          const lockMsg = element("span", "obsidian-secrets-muted");
+          lockMsg.textContent = " (unlock to decrypt)";
+          li.appendChild(lockMsg);
+        }
         list.appendChild(li);
       }
       card.append(list);
@@ -337,6 +354,49 @@ export class SecretsSidebarView extends ItemView {
     actions.append(exportButton);
     card.append(actions, paragraph("Export will create a ciphertext-only JSON file. Keys and plaintext are never included.", "obsidian-secrets-helper"));
     panel.append(card);
+  }
+
+  private async decryptBlock(marker: string): Promise<void> {
+    if (!this.sessionKeyService.isUnlocked()) {
+      new Notice("Vault is locked. Unlock it first.");
+      return;
+    }
+    const masterKey = this.sessionKeyService.getMasterKey();
+    if (!masterKey) {
+      new Notice("Vault is locked.");
+      return;
+    }
+    try {
+      const { decryptBlockWithMasterKey } = await import("../crypto.js");
+      const plaintext = await decryptBlockWithMasterKey(marker, masterKey);
+      this.getHistoryService?.().record("block_decrypted", "via sidebar");
+
+      // Show modal
+      const modal = document.createElement("div");
+      modal.className = "obsidian-secrets-reveal-modal";
+      modal.innerHTML = `
+        <div class="obsidian-secrets-reveal-content">
+          <h3>Decrypted Content</h3>
+          <pre>${plaintext.replace(/</g, "&lt;")}</pre>
+          <div class="obsidian-secrets-actions">
+            <button class="obsidian-secrets-primary-button" id="copy-btn">Copy</button>
+            <button class="obsidian-secrets-secondary-button" id="close-btn">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      modal.querySelector("#copy-btn")?.addEventListener("click", () => {
+        navigator.clipboard.writeText(plaintext).then(() => {
+          new Notice("Copied to clipboard");
+        });
+      });
+      modal.querySelector("#close-btn")?.addEventListener("click", () => {
+        document.body.removeChild(modal);
+      });
+    } catch {
+      new Notice("Decryption failed. Wrong password or corrupted block.");
+    }
   }
 
   private async exportBlocksFromSidebar(content: string): Promise<void> {

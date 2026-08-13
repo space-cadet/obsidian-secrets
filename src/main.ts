@@ -1,4 +1,4 @@
-import { Notice, Plugin, requestUrl, Modal, type App, type Editor } from "obsidian";
+import { Notice, Plugin, requestUrl, Modal, type App, type Editor, MarkdownView } from "obsidian";
 import { GIT_COMMIT_HASH } from "./buildInfo.js";
 import { DEFAULT_SETTINGS, normalizePluginSettings, PluginSettings } from "./settings.js";
 import { SecretsSettingTab } from "./settings/SecretsSettingTab.js";
@@ -315,10 +315,14 @@ export default class ObsidianSecretsPlugin extends Plugin {
     input.click();
   }
 
+  private getActiveEditor(): Editor | null {
+    const view = this.app.workspace.getActiveViewOfType(MarkdownView);
+    if (!view) return null;
+    return view.editor ?? null;
+  }
+
   private async encryptCurrentSelection(): Promise<void> {
-    const activeLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
-    const view = activeLeaf?.view as { editor?: Editor } | undefined;
-    const editor = view?.editor;
+    const editor = this.getActiveEditor();
     if (!editor) {
       new Notice("Open a note in edit mode to encrypt.");
       return;
@@ -327,9 +331,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
   }
 
   private async decryptCurrentSelection(): Promise<void> {
-    const activeLeaf = this.app.workspace.getLeavesOfType("markdown")[0];
-    const view = activeLeaf?.view as { editor?: Editor } | undefined;
-    const editor = view?.editor;
+    const editor = this.getActiveEditor();
     if (!editor) {
       new Notice("Open a note in edit mode to decrypt.");
       return;

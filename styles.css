@@ -226,6 +226,49 @@
   text-align: left;
 }
 
+.obsidian-secrets-block-item {
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--obsidian-secrets-border);
+  border-radius: 6px;
+  background: var(--background-primary, #1e1e1e);
+}
+
+.obsidian-secrets-block-header {
+  font-weight: 650;
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+
+.obsidian-secrets-reveal-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: rgba(0, 0, 0, 0.6);
+}
+
+.obsidian-secrets-reveal-content {
+  max-width: 90vw;
+  max-height: 80vh;
+  padding: 20px;
+  border-radius: 12px;
+  background: var(--background-primary, #1e1e1e);
+  color: var(--text-normal, #e5e7eb);
+  overflow: auto;
+}
+
+.obsidian-secrets-reveal-content pre {
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 6px;
+  background: var(--background-secondary, #25262a);
+}
+
 .obsidian-secrets-setting-row + .obsidian-secrets-setting-row {
   margin-top: 18px;
   padding-top: 18px;

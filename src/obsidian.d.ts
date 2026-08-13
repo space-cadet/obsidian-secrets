@@ -25,6 +25,7 @@ declare module "obsidian" {
   }
 
   export class View {
+    leaf: WorkspaceLeaf;
     constructor(leaf: WorkspaceLeaf);
     getViewType(): string;
   }
@@ -47,6 +48,7 @@ declare module "obsidian" {
     getLeavesOfType(type: string): WorkspaceLeaf[];
     getRightLeaf(split: boolean): WorkspaceLeaf | null;
     revealLeaf(leaf: WorkspaceLeaf): Promise<void>;
+    getActiveViewOfType<T extends View>(type: new (...args: any[]) => T): T | null;
   }
 
   export interface App {
