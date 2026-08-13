@@ -1,7 +1,28 @@
 # Edit History
-*Last Updated: 2026-08-12 15:52:29 IST*
 
-### 2026-08-12
+*Last Updated: 2026-08-13 06:57:42 IST*
+
+---
+
+## 2026-08-13
+
+#### 06:57:42 IST - T4: Implemented unified sidebar panel: removed 4-tab layout, added status bar widget, History modal, footer links. Updated obsidian.d.ts stubs. Build passes, all 49 tests green.
+- Modified `src/ui/SecretsSidebarView.ts` - Modified src/ui/SecretsSidebarView.ts
+- Modified `src/main.ts` - Modified src/main.ts
+- Modified `src/obsidian.d.ts` - Modified src/obsidian.d.ts
+- Modified `styles.css` - Modified styles.css
+
+#### 06:10:25 IST - T4: Redesign review: collapse 4-tab sidebar to unified panel (Path A). Create T4, T5, and implementation-details docs. Update T1, T3, techContext.
+- Created `memory-bank/tasks/T4.md` - Created memory-bank/tasks/T4.md
+- Created `memory-bank/tasks/T5.md` - Created memory-bank/tasks/T5.md
+- Created `memory-bank/implementation-details/sidebar-redesign-path-a.md` - Created memory-bank/implementation-details/sidebar-redesign-path-a.md
+- Created `memory-bank/implementation-details/compact-format-v2.md` - Created memory-bank/implementation-details/compact-format-v2.md
+- Modified `memory-bank/tasks/T1.md` - Modified memory-bank/tasks/T1.md
+- Modified `memory-bank/tasks/T3.md` - Modified memory-bank/tasks/T3.md
+- Modified `memory-bank/techContext.md` - Modified memory-bank/techContext.md
+
+
+## 2026-08-12
 
 #### 15:52:29 IST - T2: Close out updater modal publication
 - Created `memory-bank/edits/2026-08-12/155229-t2-modal-publication.md` - Recorded the final Memory Bank refresh and publication state.
@@ -48,3 +69,4 @@
 - Created `memory-bank/implementation-details/inline-encryption-design.md` - Added initial design plan.
 - Created `memory-bank/sessions/2026-08-12-afternoon.md` - Recorded bootstrap session context.
 - Updated `memory-bank/session_cache.md` - Set current session and next-session context.
+

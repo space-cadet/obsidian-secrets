@@ -44,11 +44,18 @@ declare module "obsidian" {
     view: View;
   }
 
+  export interface EventRef {
+    e: string;
+    fn: (...args: any[]) => void;
+    ctx?: unknown;
+  }
+
   export interface Workspace {
     getLeavesOfType(type: string): WorkspaceLeaf[];
     getRightLeaf(split: boolean): WorkspaceLeaf | null;
     revealLeaf(leaf: WorkspaceLeaf): Promise<void>;
     getActiveViewOfType<T extends View>(type: new (...args: any[]) => T): T | null;
+    on(name: string, callback: (...args: any[]) => void, ctx?: unknown): EventRef;
   }
 
   export interface App {
@@ -106,6 +113,8 @@ declare module "obsidian" {
     registerView(type: string, viewCreator: (leaf: WorkspaceLeaf) => ItemView): void;
     registerMarkdownPostProcessor(processor: MarkdownPostProcessor): void;
     addSettingTab(settingTab: PluginSettingTab): void;
+    addStatusBarItem(): HTMLElement;
+    registerEvent(event: EventRef): void;
   }
 
 export class ItemView {
@@ -117,6 +126,7 @@ export class ItemView {
     getViewType(): string;
     getDisplayText(): string;
     getIcon(): string;
+    registerEvent(event: EventRef): void;
   }
 
   export class PluginSettingTab {

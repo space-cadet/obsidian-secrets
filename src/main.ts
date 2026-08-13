@@ -8,7 +8,7 @@ import { PluginUpdater } from "./updater/PluginUpdater.js";
 import { UpdateAvailableModal } from "./updater/UpdateAvailableModal.js";
 import { encodeBase64Url, VAULT_SALT_BYTES, decodeBase64Url } from "./format.js";
 import { encryptBlockWithMasterKey, decryptBlockWithMasterKey, CryptoError } from "./crypto.js";
-import { SecurityHistoryService, formatSecurityEvent } from "./history/SecurityHistoryService.js";
+import { SecurityHistoryService } from "./history/SecurityHistoryService.js";
 import {
   extractEncryptedBlocks,
   exportBlocksToBundle,
@@ -78,6 +78,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
   private updater!: PluginUpdater;
   private sessionKeyService = new SessionKeyService();
   private historyService = new SecurityHistoryService();
+  private statusBarItem: HTMLElement | null = null;
 
   async onload(): Promise<void> {
     this.settings = normalizePluginSettings(await this.loadData());
@@ -101,6 +102,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
     this.sessionKeyService.onAutoLock(() => {
       this.historyService.record("vault_auto_locked");
       new Notice("Vault auto-locked due to inactivity.");
+      this.updateStatusBar();
     });
 
     this.updater = new PluginUpdater(
@@ -111,6 +113,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
       { repository: REPOSITORY, pluginId: this.manifest.id },
     );
 
+    // ── Sidebar view (unified panel) ──
     this.registerView(VIEW_TYPE_SECRETS, (leaf) => new SecretsSidebarView(
       leaf,
       this.sessionKeyService,
@@ -118,14 +121,22 @@ export default class ObsidianSecretsPlugin extends Plugin {
       () => this.openPluginSettings(),
       () => this.checkForUpdates(true),
       () => this.historyService,
-      (noteContent: string) => extractEncryptedBlocks(noteContent),
-      async (notePath: string, content: string) => {
-        await this.app.vault.adapter.write(notePath, content);
-      },
-      async (notePath: string) => this.app.vault.adapter.read(notePath),
       () => this.encryptCurrentSelection(),
       () => this.decryptCurrentSelection(),
+      () => this.getActiveBlockCount(),
     ));
+
+    // ── Status bar widget ──
+    this.statusBarItem = this.addStatusBarItem();
+    if (!this.statusBarItem) return;
+    this.statusBarItem.classList.add("obsidian-secrets-status-bar");
+    this.statusBarItem.addEventListener("click", () => this.activateSidebar());
+    this.updateStatusBar();
+
+    // Recompute block count when active editor changes
+    this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
+      this.updateStatusBar();
+    }));
 
     // Listen for vault salt regeneration from sidebar
     document.addEventListener("obsidian-secrets:regenerate-salt", async (event: Event) => {
@@ -134,7 +145,8 @@ export default class ObsidianSecretsPlugin extends Plugin {
       await this.saveData(this.settings);
       new Notice("Vault salt regenerated. Use your NEW password to unlock.");
     });
-    // Register markdown post-processor to show encrypted blocks in Live Preview/Reading mode
+
+    // Register markdown post-processor for Reading View / Live Preview
     this.registerMarkdownPostProcessor((element) => {
       const walker = document.createTreeWalker(element, NodeFilter.SHOW_COMMENT, null);
       const comments: Comment[] = [];
@@ -199,6 +211,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
         this.sessionKeyService.lock();
         this.historyService.record("vault_locked");
         new Notice("Obsidian Secrets vault locked.");
+        this.updateStatusBar();
       },
     });
 
@@ -237,6 +250,41 @@ export default class ObsidianSecretsPlugin extends Plugin {
     if (this.settings.checkForUpdatesOnStartup) void this.checkForUpdates(false);
   }
 
+  // ── Status bar helpers ──
+
+  private updateStatusBar(): void {
+    if (!this.statusBarItem) return;
+    const count = this.getActiveBlockCount();
+    const isUnlocked = this.sessionKeyService.isUnlocked();
+    this.statusBarItem.innerHTML = "";
+
+    const icon = document.createElement("span");
+    icon.textContent = isUnlocked ? "🔓" : "🔒";
+    icon.className = "obsidian-secrets-status-icon";
+    this.statusBarItem.appendChild(icon);
+
+    if (count > 0) {
+      const badge = document.createElement("span");
+      badge.textContent = String(count);
+      badge.className = "obsidian-secrets-status-count";
+      this.statusBarItem.appendChild(badge);
+    }
+
+    this.statusBarItem.title = isUnlocked
+      ? `Vault unlocked — ${count} encrypted block(s) in this note`
+      : `Vault locked — ${count} encrypted block(s) in this note (click to open sidebar)`;
+  }
+
+  private getActiveBlockCount(): number {
+    const editor = this.getActiveEditor();
+    if (!editor) return 0;
+    const content = editor.getValue();
+    const blocks = extractEncryptedBlocks(content);
+    return blocks.length;
+  }
+
+  // ── Encryption / Decryption ──
+
   private async encryptSelection(editor: Editor): Promise<void> {
     if (!this.sessionKeyService.isUnlocked()) {
       new Notice("Vault is locked. Unlock it in the Obsidian Secrets sidebar first.");
@@ -265,6 +313,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
       const marker = await encryptBlockWithMasterKey(selection, masterKey, { vaultSalt });
       editor.replaceSelection(marker);
       this.historyService.record("block_encrypted");
+      this.updateStatusBar();
       new Notice("Selection encrypted.");
     } catch (error) {
       new Notice(error instanceof CryptoError ? error.message : "Encryption failed.");
@@ -310,7 +359,6 @@ export default class ObsidianSecretsPlugin extends Plugin {
     const bundle = exportBlocksToBundle(blocks, "current-note");
     const json = serializeExportBundle(bundle);
 
-    // Create a download via data URL
     const blob = new Blob([json], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -326,7 +374,6 @@ export default class ObsidianSecretsPlugin extends Plugin {
   }
 
   private async importBlocksToCurrentNote(editor: Editor): Promise<void> {
-    // Create a file input to read the import file
     const input = document.createElement("input");
     input.type = "file";
     input.accept = ".json";
@@ -345,6 +392,7 @@ export default class ObsidianSecretsPlugin extends Plugin {
         editor.setValue(currentContent + separator + importContent + "\n");
 
         this.historyService.record("blocks_imported", `count: ${bundle.blocks.length}`);
+        this.updateStatusBar();
         new Notice(`Imported ${bundle.blocks.length} encrypted block(s).`);
       } catch (error) {
         new Notice(error instanceof Error ? `Import failed: ${error.message}` : "Import failed.");

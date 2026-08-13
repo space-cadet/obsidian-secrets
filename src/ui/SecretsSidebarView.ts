@@ -1,21 +1,11 @@
-import { ItemView, Notice, WorkspaceLeaf, MarkdownView } from "obsidian";
-import type { Envelope } from "../format.js";
-import { decodeBase64Url, MIN_ITERATIONS } from "../format.js";
+import { ItemView, Notice, WorkspaceLeaf, MarkdownView, Modal, App } from "obsidian";
 import type { PluginSettings } from "../settings.js";
 import type { SessionKeyService } from "../session/SessionKeyService.js";
 import type { SecurityHistoryService } from "../history/SecurityHistoryService.js";
-import { extractEncryptedBlocks, exportBlocksToBundle, serializeExportBundle } from "../export/ExportImportService.js";
+import type { SecurityEvent } from "../history/SecurityHistoryService.js";
+import { decodeBase64Url, MIN_ITERATIONS } from "../format.js";
 
 export const VIEW_TYPE_SECRETS = "obsidian-secrets-sidebar";
-
-type SidebarTab = "vault" | "blocks" | "history" | "settings";
-
-const TABS: Array<{ id: SidebarTab; label: string }> = [
-  { id: "vault", label: "Vault" },
-  { id: "blocks", label: "Blocks" },
-  { id: "history", label: "History" },
-  { id: "settings", label: "Settings" },
-];
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className?: string): HTMLElementTagNameMap[K] {
   const node = document.createElement(tag);
@@ -42,24 +32,79 @@ function button(text: string, className = "", type: "button" | "submit" = "butto
   return node;
 }
 
-function plannedPill(): HTMLSpanElement {
-  const node = element("span", "obsidian-secrets-pill");
-  node.textContent = "Planned";
-  return node;
+/* ───────────── History Modal ───────────── */
+
+class HistoryModal extends Modal {
+  constructor(
+    app: App,
+    private events: SecurityEvent[],
+    private totalCount: number,
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.className = "obsidian-secrets-history-modal";
+
+    const title = element("h2");
+    title.textContent = `Security History (${this.totalCount} events)`;
+    contentEl.appendChild(title);
+
+    if (this.events.length === 0) {
+      contentEl.appendChild(paragraph("No security events recorded yet."));
+      return;
+    }
+
+    const list = element("ul", "obsidian-secrets-history-list");
+    for (const event of this.events) {
+      const li = element("li");
+      const time = new Date(event.timestamp).toLocaleString("en-US", {
+        month: "short",
+        day: "numeric",
+        hour: "2-digit",
+        minute: "2-digit",
+      });
+      const labels: Record<string, string> = {
+        vault_unlocked: "Vault unlocked",
+        vault_locked: "Vault locked",
+        vault_auto_locked: "Vault auto-locked",
+        block_encrypted: "Block encrypted",
+        block_decrypted: "Block decrypted",
+        blocks_exported: "Blocks exported",
+        blocks_imported: "Blocks imported",
+        plugin_loaded: "Plugin loaded",
+        plugin_unloaded: "Plugin unloaded",
+      };
+      const label = labels[event.type] ?? event.type;
+      li.textContent = event.details
+        ? `${time} — ${label} (${event.details})`
+        : `${time} — ${label}`;
+      list.appendChild(li);
+    }
+    contentEl.appendChild(list);
+
+    contentEl.appendChild(
+      paragraph("History never contains passwords, plaintext, ciphertext, or key material.", "obsidian-secrets-helper")
+    );
+  }
+
+  onClose(): void {
+    this.contentEl.replaceChildren();
+  }
 }
 
+/* ───────────── Sidebar View ───────────── */
+
 export class SecretsSidebarView extends ItemView {
-  private activeTab: SidebarTab = "vault";
   private readonly sessionKeyService: SessionKeyService;
   private readonly getPluginSettings?: () => PluginSettings;
   private readonly openPluginSettings?: () => void;
   private readonly checkForUpdates?: () => Promise<void>;
   private readonly getHistoryService?: () => SecurityHistoryService;
-  private readonly extractBlocks?: (content: string) => Array<{ marker: string; envelope: Envelope }>;
-  private readonly writeFile?: (path: string, content: string) => Promise<void>;
-  private readonly readFile?: (path: string) => Promise<string>;
   private readonly encryptSelection?: () => Promise<void>;
   private readonly decryptSelection?: () => Promise<void>;
+  private readonly getActiveBlockCount?: () => number;
   private lockUnsubscribe?: () => void;
 
   constructor(
@@ -69,11 +114,9 @@ export class SecretsSidebarView extends ItemView {
     openPluginSettings?: () => void,
     checkForUpdates?: () => Promise<void>,
     getHistoryService?: () => SecurityHistoryService,
-    extractBlocks?: (content: string) => Array<{ marker: string; envelope: Envelope }>,
-    writeFile?: (path: string, content: string) => Promise<void>,
-    readFile?: (path: string) => Promise<string>,
     encryptSelection?: () => Promise<void>,
     decryptSelection?: () => Promise<void>,
+    getActiveBlockCount?: () => number,
   ) {
     super(leaf);
     this.sessionKeyService = sessionKeyService;
@@ -81,11 +124,9 @@ export class SecretsSidebarView extends ItemView {
     this.openPluginSettings = openPluginSettings;
     this.checkForUpdates = checkForUpdates;
     this.getHistoryService = getHistoryService;
-    this.extractBlocks = extractBlocks;
-    this.writeFile = writeFile;
-    this.readFile = readFile;
     this.encryptSelection = encryptSelection;
     this.decryptSelection = decryptSelection;
+    this.getActiveBlockCount = getActiveBlockCount;
   }
 
   getViewType(): string {
@@ -102,6 +143,8 @@ export class SecretsSidebarView extends ItemView {
 
   async onOpen(): Promise<void> {
     this.lockUnsubscribe = this.sessionKeyService.onLock(() => this.render());
+    // Re-render when active editor changes (to update block count)
+    this.registerEvent(this.app.workspace.on("active-leaf-change", () => this.render()));
     this.render();
   }
 
@@ -115,54 +158,37 @@ export class SecretsSidebarView extends ItemView {
     this.contentEl.replaceChildren();
 
     const isUnlocked = this.sessionKeyService.isUnlocked();
+    const blockCount = this.getActiveBlockCount?.() ?? 0;
+    const settings = this.getPluginSettings?.();
 
+    // ── Header with status ──
     const header = element("header", "obsidian-secrets-header");
     const title = element("div", "obsidian-secrets-title");
     title.textContent = "Obsidian Secrets";
 
     const status = element("span", isUnlocked ? "obsidian-secrets-status-dot unlocked" : "obsidian-secrets-status-dot");
     status.title = isUnlocked ? "Vault unlocked" : "Vault locked";
-    status.setAttribute("aria-label", isUnlocked ? "Vault unlocked" : "Vault locked");
+    status.setAttribute("aria-label", status.title);
     title.append(status);
     header.append(title);
-
-    const tabs = element("nav", "obsidian-secrets-tabs");
-    tabs.setAttribute("aria-label", "Obsidian Secrets sections");
-    tabs.setAttribute("role", "tablist");
-    for (const tab of TABS) {
-      const tabButton = button(tab.label, "obsidian-secrets-tab");
-      tabButton.setAttribute("role", "tab");
-      tabButton.setAttribute("aria-selected", String(this.activeTab === tab.id));
-      tabButton.classList.toggle("is-active", this.activeTab === tab.id);
-      tabButton.addEventListener("click", () => {
-        this.activeTab = tab.id;
-        this.render();
-      });
-      tabs.append(tabButton);
-    }
-    header.append(tabs);
     this.contentEl.append(header);
 
+    // ── Main panel ──
     const panel = element("main", "obsidian-secrets-panel");
-    panel.setAttribute("role", "tabpanel");
-    if (this.activeTab === "vault") this.renderVault(panel);
-    if (this.activeTab === "blocks") this.renderBlocks(panel);
-    if (this.activeTab === "history") this.renderHistory(panel);
-    if (this.activeTab === "settings") this.renderSettings(panel);
+
+    if (isUnlocked) {
+      this.renderUnlockedState(panel, blockCount, settings);
+    } else {
+      this.renderLockedState(panel, blockCount);
+    }
+
     this.contentEl.append(panel);
   }
 
-  private renderVault(panel: HTMLElement): void {
-    const isUnlocked = this.sessionKeyService.isUnlocked();
+  /* ── Locked State ── */
 
-    if (isUnlocked) {
-      this.renderUnlockedVault(panel);
-    } else {
-      this.renderLockedVault(panel);
-    }
-  }
-
-  private renderLockedVault(panel: HTMLElement): void {
+  private renderLockedState(panel: HTMLElement, blockCount: number): void {
+    // Lock card
     const lockCard = element("section", "obsidian-secrets-card obsidian-secrets-lock-card");
     const lockIcon = element("div", "obsidian-secrets-lock-icon");
     lockIcon.textContent = "LOCKED";
@@ -171,9 +197,10 @@ export class SecretsSidebarView extends ItemView {
     lockCard.append(paragraph("The encryption session is not active."));
 
     const info = element("div", "obsidian-secrets-info-box");
-    info.innerHTML = "<strong>First time?</strong> Enter any password you choose — it becomes your vault password. There's no separate 'set password' step. <strong>Important:</strong> If you forget this password, your encrypted blocks cannot be recovered.";
+    info.innerHTML = "<strong>First time?</strong> Enter any password you choose — it becomes your vault password. <strong>Important:</strong> If you forget this password, your encrypted blocks cannot be recovered.";
     lockCard.append(info);
 
+    // Unlock form
     const form = element("form", "obsidian-secrets-unlock-form");
     const label = element("label");
     label.textContent = "Unlock vault";
@@ -217,14 +244,18 @@ export class SecretsSidebarView extends ItemView {
     lockCard.append(form, paragraph("Keys stay in memory only while unlocked.", "obsidian-secrets-helper"));
     panel.append(lockCard);
 
-    const policy = element("section", "obsidian-secrets-card");
-    const policyHeader = element("div", "obsidian-secrets-card-header");
-    policyHeader.append(heading("Key policy", 3), plannedPill());
-    policy.append(policyHeader, paragraph("One vault password per active session. Session expires after inactivity or explicit lock."));
-    panel.append(policy);
+    // Block count (visible even when locked)
+    if (blockCount > 0) {
+      const countCard = element("section", "obsidian-secrets-card");
+      countCard.append(paragraph(`${blockCount} encrypted block(s) in current note. Unlock to interact with them.`, "obsidian-secrets-helper"));
+      panel.append(countCard);
+    }
   }
 
-  private renderUnlockedVault(panel: HTMLElement): void {
+  /* ── Unlocked State ── */
+
+  private renderUnlockedState(panel: HTMLElement, blockCount: number, settings?: PluginSettings): void {
+    // Unlocked card with quick actions
     const unlockCard = element("section", "obsidian-secrets-card obsidian-secrets-unlock-card");
     const unlockIcon = element("div", "obsidian-secrets-lock-icon unlocked");
     unlockIcon.textContent = "UNLOCKED";
@@ -232,24 +263,23 @@ export class SecretsSidebarView extends ItemView {
     unlockCard.append(unlockIcon, heading("Vault unlocked"));
     unlockCard.append(paragraph("The encryption session is active."));
 
-    // Quick actions for mobile
+    // Quick actions
     const actionsDiv = element("div", "obsidian-secrets-actions");
 
-    const encryptBtn = button("🔒 Encrypt selection", "obsidian-secrets-primary-button");
-    encryptBtn.addEventListener("click", () => {
-      void this.encryptSelection?.();
-    });
+    const encryptBtn = button("🔒 Encrypt", "obsidian-secrets-primary-button");
+    encryptBtn.title = "Encrypt selected text in the editor";
+    encryptBtn.addEventListener("click", () => void this.encryptSelection?.());
     actionsDiv.appendChild(encryptBtn);
 
-    const decryptBtn = button("🔓 Decrypt selection", "obsidian-secrets-secondary-button");
-    decryptBtn.addEventListener("click", () => {
-      void this.decryptSelection?.();
-    });
+    const decryptBtn = button("🔓 Decrypt", "obsidian-secrets-secondary-button");
+    decryptBtn.title = "Decrypt selected encrypted block in the editor";
+    decryptBtn.addEventListener("click", () => void this.decryptSelection?.());
     actionsDiv.appendChild(decryptBtn);
 
     unlockCard.append(actionsDiv);
     unlockCard.append(paragraph("Select text in a note, then tap a button above.", "obsidian-secrets-helper"));
 
+    // Lock button
     const lockButton = button("Lock vault", "obsidian-secrets-secondary-button");
     lockButton.addEventListener("click", () => {
       this.sessionKeyService.lock();
@@ -260,21 +290,30 @@ export class SecretsSidebarView extends ItemView {
     unlockCard.append(lockButton, paragraph("Click to clear all keys from memory.", "obsidian-secrets-helper"));
     panel.append(unlockCard);
 
-    const policy = element("section", "obsidian-secrets-card");
-    const policyHeader = element("div", "obsidian-secrets-card-header");
-    policyHeader.append(heading("Key policy", 3));
-    const settings = this.getPluginSettings?.();
+    // Session info
+    const infoCard = element("section", "obsidian-secrets-card");
     const timeoutText = settings?.sessionTimeoutMinutes
       ? `Auto-lock after ${settings.sessionTimeoutMinutes} minutes of inactivity.`
       : "Auto-lock is disabled.";
-    policy.append(policyHeader, paragraph(`One vault password per active session. ${timeoutText}`));
-    panel.append(policy);
+    infoCard.append(paragraph(`One vault password per session. ${timeoutText}`));
+    panel.append(infoCard);
 
-    const dangerZone = element("section", "obsidian-secrets-card");
-    const dangerHeader = element("div", "obsidian-secrets-card-header");
-    dangerHeader.append(heading("Danger zone", 3));
-    dangerZone.append(dangerHeader);
-    dangerZone.append(paragraph("Change your vault password by generating a new vault salt. WARNING: All existing encrypted blocks will become undecryptable. Only proceed if you have no encrypted blocks or have exported them."));
+    // Block count
+    const countCard = element("section", "obsidian-secrets-card");
+    if (blockCount === 0) {
+      countCard.append(paragraph("No encrypted blocks in current note."));
+      const empty = element("div", "obsidian-secrets-empty-state");
+      empty.textContent = "Select text and tap 'Encrypt' to create an encrypted block.";
+      countCard.append(empty);
+    } else {
+      countCard.append(paragraph(`${blockCount} encrypted block(s) in current note.`));
+    }
+    panel.append(countCard);
+
+    // Danger zone
+    const dangerCard = element("section", "obsidian-secrets-card");
+    dangerCard.append(heading("Danger zone", 3));
+    dangerCard.append(paragraph("Change your vault password by generating a new vault salt. WARNING: All existing encrypted blocks will become undecryptable."));
     const resetBtn = button("Change vault password", "obsidian-secrets-danger-button");
     resetBtn.addEventListener("click", async () => {
       const confirmed = confirm("WARNING: This will change your vault password and INVALIDATE all existing encrypted blocks. They will become permanently undecryptable. Are you sure?");
@@ -284,11 +323,9 @@ export class SecretsSidebarView extends ItemView {
 
       this.sessionKeyService.lock();
 
-      // Generate new salt
       const { encodeBase64Url, VAULT_SALT_BYTES } = await import("../format.js");
       const newSalt = encodeBase64Url(crypto.getRandomValues(new Uint8Array(VAULT_SALT_BYTES)));
 
-      // Save to settings via callback (we need the plugin to handle this)
       const event = new CustomEvent("obsidian-secrets:regenerate-salt", {
         detail: { newSalt },
       });
@@ -298,204 +335,42 @@ export class SecretsSidebarView extends ItemView {
       new Notice("Vault password changed. Old encrypted blocks are now undecryptable. Unlock with your NEW password.");
       this.render();
     });
-    dangerZone.append(resetBtn);
-    panel.append(dangerZone);
-  }
+    dangerCard.append(resetBtn);
+    panel.append(dangerCard);
 
-  private renderBlocks(panel: HTMLElement): void {
-    const card = element("section", "obsidian-secrets-card");
-    card.append(heading("Protected blocks"));
+    // Footer links
+    const footer = element("footer", "obsidian-secrets-footer");
 
-    // Get active note content
-    const activeLeaf = this.app.workspace.getActiveViewOfType(MarkdownView)?.leaf;
-    const view = activeLeaf?.view as { editor?: { getValue: () => string } } | undefined;
-    const editor = view?.editor;
-    const content = editor?.getValue() ?? "";
-    const blocks = this.extractBlocks ? this.extractBlocks(content) : [];
-    const isUnlocked = this.sessionKeyService.isUnlocked();
-
-    if (blocks.length === 0) {
-      card.append(paragraph("No encrypted blocks found in the current note."));
-      const empty = element("div", "obsidian-secrets-empty-state");
-      empty.textContent = isUnlocked
-        ? "Select text and tap 'Encrypt selection' to create encrypted blocks."
-        : "Unlock the vault to encrypt and decrypt blocks.";
-      card.append(empty);
-    } else {
-      card.append(paragraph(`${blocks.length} encrypted block(s) in current note.`));
-      const list = element("ul", "obsidian-secrets-block-list");
-      for (let i = 0; i < blocks.length; i++) {
-        const li = element("li", "obsidian-secrets-block-item");
-        const blockHeader = element("div", "obsidian-secrets-block-header");
-        blockHeader.textContent = `Block ${i + 1}`;
-        li.appendChild(blockHeader);
-
-        if (isUnlocked) {
-          const decryptBtn = button("Decrypt", "obsidian-secrets-secondary-button");
-          decryptBtn.addEventListener("click", () => {
-            void this.decryptBlock(blocks[i].marker);
-          });
-          li.appendChild(decryptBtn);
-        } else {
-          const lockMsg = element("span", "obsidian-secrets-muted");
-          lockMsg.textContent = " (unlock to decrypt)";
-          li.appendChild(lockMsg);
-        }
-        list.appendChild(li);
+    const historyLink = element("a", "obsidian-secrets-footer-link");
+    historyLink.textContent = "📜 View history";
+    historyLink.href = "#";
+    historyLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      const history = this.getHistoryService?.();
+      if (history) {
+        new HistoryModal(this.app, history.getEvents(50), history.getEventCount()).open();
       }
-      card.append(list);
-    }
-
-    const actions = element("div", "obsidian-secrets-actions");
-    const exportButton = button("Export blocks", "obsidian-secrets-secondary-button");
-    exportButton.addEventListener("click", () => {
-      void this.exportBlocksFromSidebar(content);
     });
-    actions.append(exportButton);
-    card.append(actions, paragraph("Export will create a ciphertext-only JSON file. Keys and plaintext are never included.", "obsidian-secrets-helper"));
-    panel.append(card);
-  }
+    footer.appendChild(historyLink);
 
-  private async decryptBlock(marker: string): Promise<void> {
-    if (!this.sessionKeyService.isUnlocked()) {
-      new Notice("Vault is locked. Unlock it first.");
-      return;
-    }
-    const masterKey = this.sessionKeyService.getMasterKey();
-    if (!masterKey) {
-      new Notice("Vault is locked.");
-      return;
-    }
-    try {
-      const { decryptBlockWithMasterKey } = await import("../crypto.js");
-      const plaintext = await decryptBlockWithMasterKey(marker, masterKey);
-      this.getHistoryService?.().record("block_decrypted", "via sidebar");
+    const settingsLink = element("a", "obsidian-secrets-footer-link");
+    settingsLink.textContent = "⚙️ Settings";
+    settingsLink.href = "#";
+    settingsLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      this.openPluginSettings?.();
+    });
+    footer.appendChild(settingsLink);
 
-      // Show modal
-      const modal = document.createElement("div");
-      modal.className = "obsidian-secrets-reveal-modal";
-      modal.innerHTML = `
-        <div class="obsidian-secrets-reveal-content">
-          <h3>Decrypted Content</h3>
-          <pre>${plaintext.replace(/</g, "&lt;")}</pre>
-          <div class="obsidian-secrets-actions">
-            <button class="obsidian-secrets-primary-button" id="copy-btn">Copy</button>
-            <button class="obsidian-secrets-secondary-button" id="close-btn">Close</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(modal);
+    const updatesLink = element("a", "obsidian-secrets-footer-link");
+    updatesLink.textContent = "🔄 Check updates";
+    updatesLink.href = "#";
+    updatesLink.addEventListener("click", (e) => {
+      e.preventDefault();
+      void this.checkForUpdates?.();
+    });
+    footer.appendChild(updatesLink);
 
-      modal.querySelector("#copy-btn")?.addEventListener("click", () => {
-        navigator.clipboard.writeText(plaintext).then(() => {
-          new Notice("Copied to clipboard");
-        });
-      });
-      modal.querySelector("#close-btn")?.addEventListener("click", () => {
-        document.body.removeChild(modal);
-      });
-    } catch {
-      new Notice("Decryption failed. Wrong password or corrupted block.");
-    }
-  }
-
-  private async exportBlocksFromSidebar(content: string): Promise<void> {
-    if (!this.extractBlocks) return;
-    const blocks = this.extractBlocks(content);
-    if (blocks.length === 0) {
-      new Notice("No encrypted blocks to export.");
-      return;
-    }
-    const bundle = exportBlocksToBundle(blocks, "sidebar-export");
-    const json = serializeExportBundle(bundle);
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `obsidian-secrets-export-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    this.getHistoryService?.().record("blocks_exported", `count: ${blocks.length}`);
-    new Notice(`Exported ${blocks.length} encrypted block(s).`);
-  }
-
-  private renderHistory(panel: HTMLElement): void {
-    const card = element("section", "obsidian-secrets-card");
-    const history = this.getHistoryService?.();
-    const events = history?.getEvents(20) ?? [];
-
-    if (events.length === 0) {
-      card.append(heading("Security history"));
-      card.append(paragraph("No security events recorded yet."));
-      const empty = element("div", "obsidian-secrets-empty-state");
-      empty.textContent = "Lock, unlock, encrypt, decrypt, and export events will appear here.";
-      card.append(empty);
-    } else {
-      card.append(heading(`Security history (${history?.getEventCount() ?? 0} events)`));
-      const list = element("ul", "obsidian-secrets-history-list");
-      for (const event of events) {
-        const li = element("li");
-        const time = new Date(event.timestamp).toLocaleString("en-US", {
-          month: "short",
-          day: "numeric",
-          hour: "2-digit",
-          minute: "2-digit",
-        });
-        const labels: Record<string, string> = {
-          vault_unlocked: "Vault unlocked",
-          vault_locked: "Vault locked",
-          vault_auto_locked: "Vault auto-locked",
-          block_encrypted: "Block encrypted",
-          block_decrypted: "Block decrypted",
-          blocks_exported: "Blocks exported",
-          blocks_imported: "Blocks imported",
-          plugin_loaded: "Plugin loaded",
-          plugin_unloaded: "Plugin unloaded",
-        };
-        const label = labels[event.type] ?? event.type;
-        li.textContent = event.details ? `${time} — ${label} (${event.details})` : `${time} — ${label}`;
-        list.appendChild(li);
-      }
-      card.append(list);
-    }
-
-    card.append(paragraph("History never contains passwords, plaintext, ciphertext, or key material.", "obsidian-secrets-helper"));
-    panel.append(card);
-  }
-
-  private renderSettings(panel: HTMLElement): void {
-    const card = element("section", "obsidian-secrets-card");
-    const header = element("div", "obsidian-secrets-card-header");
-    header.append(heading("Settings"));
-    const openSettings = button("Open plugin settings", "obsidian-secrets-secondary-button");
-    openSettings.addEventListener("click", () => this.openPluginSettings?.());
-    header.append(openSettings);
-    card.append(header);
-    const updaterActions = element("div", "obsidian-secrets-actions");
-    const checkUpdates = button("Check for updates", "obsidian-secrets-secondary-button");
-    checkUpdates.addEventListener("click", () => void this.checkForUpdates?.());
-    updaterActions.append(checkUpdates);
-    card.append(updaterActions);
-    card.append(this.settingRow("Encryption keys", "Choose the vault key policy and session expiry.", "Configured"));
-    card.append(this.settingRow("Export and import", "Ciphertext-only block bundles.", "Active"));
-    const settings = this.getPluginSettings?.();
-    const channel = settings?.updateChannel === "dev" ? "Development" : "Stable";
-    const startup = settings?.checkForUpdatesOnStartup ? "On" : "Off";
-    card.append(this.settingRow("Updater", `Channel: ${channel}. Startup checks: ${startup}. Configure these in Obsidian Settings.`, "Configured"));
-    panel.append(card);
-  }
-
-  private settingRow(title: string, description: string, state: string): HTMLDivElement {
-    const row = element("div", "obsidian-secrets-setting-row");
-    const copy = element("div");
-    const titleNode = element("strong");
-    titleNode.textContent = title;
-    copy.append(titleNode, paragraph(description));
-    const stateNode = element("span", "obsidian-secrets-pill");
-    stateNode.textContent = state;
-    row.append(copy, stateNode);
-    return row;
+    panel.append(footer);
   }
 }

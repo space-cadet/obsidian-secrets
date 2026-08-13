@@ -1,3 +1,5 @@
+/* ─── Obsidian Secrets — Unified Panel Styles ─── */
+
 .obsidian-secrets-view {
   --obsidian-secrets-accent: #9b6cff;
   --obsidian-secrets-border: var(--background-modifier-border, #34363b);
@@ -7,6 +9,7 @@
   overflow-y: auto;
 }
 
+/* Header */
 .obsidian-secrets-header {
   position: sticky;
   top: 0;
@@ -37,45 +40,14 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, #4ade80 18%, transparent);
 }
 
-.obsidian-secrets-lock-icon.unlocked {
-  background: color-mix(in srgb, #4ade80 16%, transparent);
-  color: #4ade80;
-}
-
-.obsidian-secrets-tabs {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 2px;
-  margin-top: 16px;
-  border-bottom: 1px solid var(--obsidian-secrets-border);
-}
-
-.obsidian-secrets-tab {
-  padding: 8px 3px 10px;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  border-radius: 0;
-  background: transparent;
-  color: var(--obsidian-secrets-muted);
-  font-size: 11px;
-  cursor: pointer;
-}
-
-.obsidian-secrets-tab:hover,
-.obsidian-secrets-tab.is-active {
-  color: var(--text-normal, #e5e7eb);
-}
-
-.obsidian-secrets-tab.is-active {
-  border-bottom-color: var(--obsidian-secrets-accent);
-}
-
+/* Panel */
 .obsidian-secrets-panel {
   display: grid;
   gap: 12px;
   padding-top: 14px;
 }
 
+/* Cards */
 .obsidian-secrets-card {
   padding: 16px;
   border: 1px solid var(--obsidian-secrets-border);
@@ -83,6 +55,24 @@
   background: var(--background-secondary, #25262a);
 }
 
+.obsidian-secrets-card h2,
+.obsidian-secrets-card h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.obsidian-secrets-card h2 {
+  font-size: 18px;
+}
+
+.obsidian-secrets-card p {
+  margin: 8px 0 0;
+  color: var(--obsidian-secrets-muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+/* Lock card (centered) */
 .obsidian-secrets-lock-card {
   text-align: center;
 }
@@ -106,18 +96,12 @@
   letter-spacing: 0.08em;
 }
 
-.obsidian-secrets-card h3,
-.obsidian-secrets-card h2 {
-  margin: 0;
+.obsidian-secrets-lock-icon.unlocked {
+  background: color-mix(in srgb, #4ade80 16%, transparent);
+  color: #4ade80;
 }
 
-.obsidian-secrets-card p {
-  margin: 8px 0 0;
-  color: var(--obsidian-secrets-muted);
-  font-size: 12px;
-  line-height: 1.45;
-}
-
+/* Unlock form */
 .obsidian-secrets-unlock-form {
   display: grid;
   gap: 7px;
@@ -140,11 +124,13 @@
   color: var(--text-normal, #e5e7eb);
 }
 
+/* Buttons */
 .obsidian-secrets-primary-button,
 .obsidian-secrets-secondary-button {
   padding: 9px 12px;
   border-radius: 6px;
   cursor: pointer;
+  font-size: 13px;
 }
 
 .obsidian-secrets-primary-button {
@@ -165,45 +151,6 @@
   opacity: 0.5;
 }
 
-.obsidian-secrets-helper {
-  font-size: 11px !important;
-}
-
-.obsidian-secrets-card-header,
-.obsidian-secrets-setting-row {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 12px;
-}
-
-.obsidian-secrets-pill {
-  flex: 0 0 auto;
-  padding: 3px 7px;
-  border: 1px solid color-mix(in srgb, var(--obsidian-secrets-accent) 45%, var(--obsidian-secrets-border));
-  border-radius: 999px;
-  color: var(--obsidian-secrets-accent);
-  font-size: 10px;
-  line-height: 1.2;
-}
-
-.obsidian-secrets-empty-state {
-  margin-top: 14px;
-  padding: 18px 12px;
-  border: 1px dashed var(--obsidian-secrets-border);
-  border-radius: 6px;
-  color: var(--obsidian-secrets-muted);
-  font-size: 12px;
-  text-align: center;
-}
-
-.obsidian-secrets-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-  margin-top: 14px;
-}
-
 .obsidian-secrets-danger-button {
   padding: 9px 12px;
   border: 1px solid #ef4444;
@@ -212,8 +159,24 @@
   color: #ef4444;
   font-weight: 650;
   cursor: pointer;
+  font-size: 13px;
 }
 
+/* Action grid (2 columns) */
+.obsidian-secrets-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* Helper text */
+.obsidian-secrets-helper {
+  font-size: 11px !important;
+  margin-top: 6px !important;
+}
+
+/* Info box */
 .obsidian-secrets-info-box {
   margin: 12px 0;
   padding: 12px;
@@ -226,20 +189,59 @@
   text-align: left;
 }
 
-.obsidian-secrets-block-item {
-  margin: 8px 0;
-  padding: 10px;
-  border: 1px solid var(--obsidian-secrets-border);
+/* Empty state */
+.obsidian-secrets-empty-state {
+  margin-top: 14px;
+  padding: 18px 12px;
+  border: 1px dashed var(--obsidian-secrets-border);
   border-radius: 6px;
-  background: var(--background-primary, #1e1e1e);
+  color: var(--obsidian-secrets-muted);
+  font-size: 12px;
+  text-align: center;
 }
 
-.obsidian-secrets-block-header {
-  font-weight: 650;
-  font-size: 13px;
-  margin-bottom: 6px;
+/* Footer links */
+.obsidian-secrets-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--obsidian-secrets-border);
 }
 
+.obsidian-secrets-footer-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  border-radius: 6px;
+  background: var(--background-secondary, #25262a);
+  border: 1px solid var(--obsidian-secrets-border);
+  color: var(--text-muted, #9a9da5);
+  font-size: 12px;
+  text-decoration: none;
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.obsidian-secrets-footer-link:hover {
+  color: var(--text-normal, #e5e7eb);
+}
+
+/* Inline marker (Reading View / Live Preview) */
+.obsidian-secrets-inline-marker {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--obsidian-secrets-accent) 16%, transparent);
+  color: var(--obsidian-secrets-accent);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+}
+
+/* Decrypt reveal modal */
 .obsidian-secrets-reveal-modal {
   position: fixed;
   inset: 0;
@@ -269,24 +271,59 @@
   background: var(--background-secondary, #25262a);
 }
 
-.obsidian-secrets-inline-marker {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  background: color-mix(in srgb, var(--obsidian-secrets-accent) 16%, transparent);
-  color: var(--obsidian-secrets-accent);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  user-select: none;
+/* History modal */
+.obsidian-secrets-history-modal h2 {
+  margin: 0 0 12px;
+  font-size: 18px;
 }
 
-.obsidian-secrets-setting-row + .obsidian-secrets-setting-row {
-  margin-top: 18px;
-  padding-top: 18px;
-  border-top: 1px solid var(--obsidian-secrets-border);
+.obsidian-secrets-history-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
 }
 
-.obsidian-secrets-setting-row strong {
+.obsidian-secrets-history-list li {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--obsidian-secrets-border);
   font-size: 13px;
+  color: var(--text-normal, #e5e7eb);
+}
+
+.obsidian-secrets-history-list li:last-child {
+  border-bottom: none;
+}
+
+/* Status bar */
+.obsidian-secrets-status-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  padding: 0 6px;
+  border-radius: 4px;
+  transition: background 0.15s ease;
+}
+
+.obsidian-secrets-status-bar:hover {
+  background: var(--background-modifier-hover, rgba(255,255,255,0.05));
+}
+
+.obsidian-secrets-status-icon {
+  font-size: 13px;
+  line-height: 1;
+}
+
+.obsidian-secrets-status-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--obsidian-secrets-accent);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 650;
 }
