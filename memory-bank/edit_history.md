@@ -1,10 +1,14 @@
 # Edit History
 
-*Last Updated: 2026-08-13 06:57:42 IST*
+*Last Updated: 2026-08-13 09:33:12 IST*
 
 ---
 
 ## 2026-08-13
+
+#### 09:33:12 IST - T4: Mobile UX analysis: identified selection-loss bug on view switch. Plan: T4.7 quick-unlock modal (Option 1) + T4.8 context menu (Option 3). Created mobile-unlock-modal.md design doc.
+- Created `memory-bank/implementation-details/mobile-unlock-modal.md` - Created memory-bank/implementation-details/mobile-unlock-modal.md
+- Modified `memory-bank/tasks/T4.md` - Modified memory-bank/tasks/T4.md
 
 #### 06:57:42 IST - T4: Implemented unified sidebar panel: removed 4-tab layout, added status bar widget, History modal, footer links. Updated obsidian.d.ts stubs. Build passes, all 49 tests green.
 - Modified `src/ui/SecretsSidebarView.ts` - Modified src/ui/SecretsSidebarView.ts

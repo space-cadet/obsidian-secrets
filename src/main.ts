@@ -1,4 +1,4 @@
-import { Notice, Plugin, requestUrl, Modal, type App, type Editor, MarkdownView } from "obsidian";
+import { Notice, Plugin, requestUrl, Modal, type App, type Editor, MarkdownView, type EditorMenu, type MenuItem } from "obsidian";
 import { GIT_COMMIT_HASH } from "./buildInfo.js";
 import { DEFAULT_SETTINGS, normalizePluginSettings, PluginSettings } from "./settings.js";
 import { SecretsSettingTab } from "./settings/SecretsSettingTab.js";
@@ -6,7 +6,7 @@ import { SessionKeyService } from "./session/SessionKeyService.js";
 import { SecretsSidebarView, VIEW_TYPE_SECRETS } from "./ui/SecretsSidebarView.js";
 import { PluginUpdater } from "./updater/PluginUpdater.js";
 import { UpdateAvailableModal } from "./updater/UpdateAvailableModal.js";
-import { encodeBase64Url, VAULT_SALT_BYTES, decodeBase64Url } from "./format.js";
+import { encodeBase64Url, VAULT_SALT_BYTES, decodeBase64Url, MIN_ITERATIONS } from "./format.js";
 import { encryptBlockWithMasterKey, decryptBlockWithMasterKey, CryptoError } from "./crypto.js";
 import { SecurityHistoryService } from "./history/SecurityHistoryService.js";
 import {
@@ -24,6 +24,8 @@ function randomBytes(length: number): Uint8Array {
   globalThis.crypto?.getRandomValues(result);
   return result;
 }
+
+/* ───────────── Decrypt Reveal Modal ───────────── */
 
 class DecryptRevealModal extends Modal {
   constructor(app: App, private plaintext: string) {
@@ -73,12 +75,110 @@ class DecryptRevealModal extends Modal {
   }
 }
 
+/* ───────────── Quick Unlock Modal ───────────── */
+
+type PendingAction = {
+  type: "encrypt" | "decrypt";
+  editor: Editor;
+};
+
+class QuickUnlockModal extends Modal {
+  private passwordInput: HTMLInputElement | null = null;
+
+  constructor(
+    app: App,
+    private options: {
+      onUnlock: (password: string) => Promise<boolean>;
+      onCancel?: () => void;
+    },
+  ) {
+    super(app);
+  }
+
+  onOpen(): void {
+    const { contentEl } = this;
+    contentEl.className = "obsidian-secrets-unlock-modal";
+
+    const title = document.createElement("h3");
+    title.textContent = "🔒 Vault Locked";
+    contentEl.appendChild(title);
+
+    const desc = document.createElement("p");
+    desc.textContent = "Enter your vault password to continue.";
+    desc.className = "obsidian-secrets-helper";
+    contentEl.appendChild(desc);
+
+    const form = document.createElement("form");
+    form.style.display = "grid";
+    form.style.gap = "10px";
+    form.style.marginTop = "12px";
+
+    this.passwordInput = document.createElement("input");
+    this.passwordInput.type = "password";
+    this.passwordInput.placeholder = "Vault password";
+    this.passwordInput.autocomplete = "current-password";
+    this.passwordInput.className = "obsidian-secrets-unlock-modal-input";
+    form.appendChild(this.passwordInput);
+
+    const btnRow = document.createElement("div");
+    btnRow.style.display = "grid";
+    btnRow.style.gridTemplateColumns = "1fr 1fr";
+    btnRow.style.gap = "8px";
+
+    const unlockBtn = document.createElement("button");
+    unlockBtn.textContent = "Unlock";
+    unlockBtn.type = "submit";
+    unlockBtn.className = "obsidian-secrets-primary-button";
+    btnRow.appendChild(unlockBtn);
+
+    const cancelBtn = document.createElement("button");
+    cancelBtn.textContent = "Cancel";
+    cancelBtn.type = "button";
+    cancelBtn.className = "obsidian-secrets-secondary-button";
+    cancelBtn.addEventListener("click", () => {
+      this.options.onCancel?.();
+      this.close();
+    });
+    btnRow.appendChild(cancelBtn);
+
+    form.appendChild(btnRow);
+
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      if (!this.passwordInput || this.passwordInput.value.length === 0) {
+        new Notice("Enter a password.");
+        return;
+      }
+      const pwd = this.passwordInput.value;
+      this.passwordInput.value = "";
+
+      const shouldClose = await this.options.onUnlock(pwd);
+      if (shouldClose) {
+        this.close();
+      }
+    });
+
+    contentEl.appendChild(form);
+
+    // Auto-focus password input
+    setTimeout(() => this.passwordInput?.focus(), 50);
+  }
+
+  onClose(): void {
+    this.contentEl.replaceChildren();
+    this.passwordInput = null;
+  }
+}
+
+/* ───────────── Main Plugin ───────────── */
+
 export default class ObsidianSecretsPlugin extends Plugin {
   private settings: PluginSettings = { ...DEFAULT_SETTINGS };
   private updater!: PluginUpdater;
   private sessionKeyService = new SessionKeyService();
   private historyService = new SecurityHistoryService();
   private statusBarItem: HTMLElement | null = null;
+  private pendingAction: PendingAction | null = null;
 
   async onload(): Promise<void> {
     this.settings = normalizePluginSettings(await this.loadData());
@@ -128,14 +228,38 @@ export default class ObsidianSecretsPlugin extends Plugin {
 
     // ── Status bar widget ──
     this.statusBarItem = this.addStatusBarItem();
-    if (!this.statusBarItem) return;
-    this.statusBarItem.classList.add("obsidian-secrets-status-bar");
-    this.statusBarItem.addEventListener("click", () => this.activateSidebar());
-    this.updateStatusBar();
+    if (this.statusBarItem) {
+      this.statusBarItem.classList.add("obsidian-secrets-status-bar");
+      this.statusBarItem.addEventListener("click", () => this.activateSidebar());
+      this.updateStatusBar();
+    }
 
     // Recompute block count when active editor changes
     this.registerEvent(this.app.workspace.on("active-leaf-change", () => {
       this.updateStatusBar();
+    }));
+
+    // ── Editor context menu (mobile + desktop) ──
+    this.registerEvent(this.app.workspace.on("editor-menu", (menu: EditorMenu, editor: Editor) => {
+      const selection = editor.getSelection();
+      if (!selection || selection.trim().length === 0) return;
+
+      // Check if selection looks like an encrypted block
+      const isEncrypted = /^<!--\s*obsidian-secrets:v1:[A-Za-z0-9_-]+\s*-->$/u.test(selection.trim());
+
+      if (isEncrypted) {
+        menu.addItem((item: MenuItem) => {
+          item.setTitle("🔓 Decrypt");
+          item.setIcon("unlock");
+          item.onClick(() => void this.decryptSelection(editor));
+        });
+      } else {
+        menu.addItem((item: MenuItem) => {
+          item.setTitle("🔒 Encrypt with Obsidian Secrets");
+          item.setIcon("lock");
+          item.onClick(() => void this.encryptSelection(editor));
+        });
+      }
     }));
 
     // Listen for vault salt regeneration from sidebar
@@ -250,6 +374,61 @@ export default class ObsidianSecretsPlugin extends Plugin {
     if (this.settings.checkForUpdatesOnStartup) void this.checkForUpdates(false);
   }
 
+  // ── Unlock Flow ──
+
+  /**
+   * If vault is locked, shows a quick-unlock modal and stores the pending action.
+   * Returns true if already unlocked or successfully unlocked.
+   * Returns false if modal was shown (caller should wait for callback).
+   */
+  private async ensureUnlocked(editor: Editor, action: "encrypt" | "decrypt"): Promise<boolean> {
+    if (this.sessionKeyService.isUnlocked()) return true;
+
+    this.pendingAction = { type: action, editor };
+
+    new QuickUnlockModal(this.app, {
+      onUnlock: async (password: string) => {
+        const vaultSalt = this.settings.vaultSalt;
+        if (!vaultSalt) {
+          new Notice("Vault salt not configured.");
+          return false;
+        }
+
+        try {
+          const saltBytes = decodeBase64Url(vaultSalt, "vs");
+          const success = await this.sessionKeyService.unlock(password, saltBytes, MIN_ITERATIONS);
+          if (!success) {
+            new Notice("Incorrect password.");
+            return false;
+          }
+
+          this.historyService.record("vault_unlocked");
+          this.updateStatusBar();
+
+          // Resume the pending action
+          const pending = this.pendingAction;
+          this.pendingAction = null;
+
+          if (pending?.type === "encrypt") {
+            await this.doEncryptSelection(pending.editor);
+          } else if (pending?.type === "decrypt") {
+            await this.doDecryptSelection(pending.editor);
+          }
+
+          return true;
+        } catch {
+          new Notice("Failed to unlock vault.");
+          return false;
+        }
+      },
+      onCancel: () => {
+        this.pendingAction = null;
+      },
+    }).open();
+
+    return false;
+  }
+
   // ── Status bar helpers ──
 
   private updateStatusBar(): void {
@@ -286,11 +465,19 @@ export default class ObsidianSecretsPlugin extends Plugin {
   // ── Encryption / Decryption ──
 
   private async encryptSelection(editor: Editor): Promise<void> {
-    if (!this.sessionKeyService.isUnlocked()) {
-      new Notice("Vault is locked. Unlock it in the Obsidian Secrets sidebar first.");
+    const selection = editor.getSelection();
+    if (!selection || selection.trim().length === 0) {
+      new Notice("Select text to encrypt.");
       return;
     }
 
+    const unlocked = await this.ensureUnlocked(editor, "encrypt");
+    if (!unlocked) return; // Modal is handling it
+
+    await this.doEncryptSelection(editor);
+  }
+
+  private async doEncryptSelection(editor: Editor): Promise<void> {
     const selection = editor.getSelection();
     if (!selection || selection.trim().length === 0) {
       new Notice("Select text to encrypt.");
@@ -321,11 +508,19 @@ export default class ObsidianSecretsPlugin extends Plugin {
   }
 
   private async decryptSelection(editor: Editor): Promise<void> {
-    if (!this.sessionKeyService.isUnlocked()) {
-      new Notice("Vault is locked. Unlock it in the Obsidian Secrets sidebar first.");
+    const selection = editor.getSelection();
+    if (!selection || selection.trim().length === 0) {
+      new Notice("Select an encrypted block to decrypt.");
       return;
     }
 
+    const unlocked = await this.ensureUnlocked(editor, "decrypt");
+    if (!unlocked) return; // Modal is handling it
+
+    await this.doDecryptSelection(editor);
+  }
+
+  private async doDecryptSelection(editor: Editor): Promise<void> {
     const selection = editor.getSelection();
     if (!selection || selection.trim().length === 0) {
       new Notice("Select an encrypted block to decrypt.");

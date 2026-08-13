@@ -50,6 +50,16 @@ declare module "obsidian" {
     ctx?: unknown;
   }
 
+  export interface MenuItem {
+    setTitle(title: string): this;
+    setIcon(icon: string): this;
+    onClick(callback: () => void): this;
+  }
+
+  export interface EditorMenu {
+    addItem(callback: (item: MenuItem) => void): void;
+  }
+
   export interface Workspace {
     getLeavesOfType(type: string): WorkspaceLeaf[];
     getRightLeaf(split: boolean): WorkspaceLeaf | null;
